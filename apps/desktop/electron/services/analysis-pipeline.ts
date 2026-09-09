@@ -356,7 +356,11 @@ export async function runAnalysisPipeline(
       metadata,
     };
   } catch (error) {
-    if (input.signal.aborted || (error instanceof Error && error.message === 'ANALYSIS_CANCELED')) {
+    const canceled =
+      input.signal.aborted ||
+      (error instanceof Error && error.message === 'ANALYSIS_CANCELED');
+
+    if (canceled) {
       emitProgress(input.onProgress, {
         jobId: input.jobId,
         stage: 'canceled',
@@ -364,7 +368,11 @@ export async function runAnalysisPipeline(
         message: 'Análise cancelada. Limpando arquivos temporários...',
         workspacePath,
       });
-      await rm(workspacePath, { recursive: true, force: true });
+    }
+
+    await rm(workspacePath, { recursive: true, force: true });
+
+    if (canceled) {
       throw new Error('ANALYSIS_CANCELED');
     }
 
