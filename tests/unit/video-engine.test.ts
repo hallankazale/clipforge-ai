@@ -25,7 +25,7 @@ describe('parseProbeOutput', () => {
       },
     });
 
-    expect(metadata.fileName).toBe('D:\\Videos\\entrada.mp4');
+    expect(metadata.fileName).toBe('entrada.mp4');
     expect(metadata.extension).toBe('.mp4');
     expect(metadata.durationSeconds).toBeCloseTo(123.456);
     expect(metadata.width).toBe(1920);
@@ -43,6 +43,7 @@ describe('parseProbeOutput', () => {
       format: { duration: '10' },
     });
 
+    expect(metadata.fileName).toBe('video.webm');
     expect(metadata.durationSeconds).toBe(10);
     expect(metadata.width).toBeNull();
     expect(metadata.height).toBeNull();
