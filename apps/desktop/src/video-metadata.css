@@ -1,0 +1,100 @@
+button:disabled { cursor: not-allowed; opacity: .55; }
+
+.upload-card { width: 100%; color: #dce8fa; }
+.upload-card:hover:not(:disabled) { background: rgba(21, 43, 75, .76); border-color: #4895ff; }
+.source-ready { border-style: solid; border-color: rgba(65, 204, 137, .55); }
+.ready-label { display: inline-flex; align-items: center; gap: 6px; color: #57dc9b; margin-top: 4px; }
+
+.status-message {
+  margin-top: 14px;
+  padding: 12px 14px;
+  display: flex;
+  align-items: flex-start;
+  gap: 9px;
+  border-radius: 12px;
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.error-message {
+  color: #ffb6bd;
+  background: rgba(142, 37, 55, .18);
+  border: 1px solid rgba(255, 91, 109, .22);
+}
+
+.metadata-card {
+  margin-top: 14px;
+  padding: 15px;
+  background: rgba(7, 18, 31, .68);
+  border: 1px solid rgba(74, 143, 255, .24);
+  border-radius: 14px;
+}
+
+.metadata-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.metadata-heading > div {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.metadata-heading > div > div {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+
+.metadata-heading strong,
+.metadata-heading span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.metadata-heading span:not(.engine-badge) { color: #7589a7; font-size: 11px; }
+.engine-badge {
+  flex: 0 0 auto;
+  padding: 5px 8px;
+  color: #74efae;
+  background: rgba(51, 177, 111, .12);
+  border: 1px solid rgba(77, 218, 144, .22);
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.metadata-grid {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 8px;
+  margin-top: 13px;
+}
+
+.metadata-grid > div {
+  min-width: 0;
+  padding: 10px;
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 4px 7px;
+  background: rgba(23, 41, 65, .46);
+  border-radius: 10px;
+}
+
+.metadata-grid svg { grid-row: span 2; color: #669fff; align-self: center; }
+.metadata-grid span { color: #7789a6; font-size: 10px; }
+.metadata-grid strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 12px; }
+
+.primary-action:disabled { filter: grayscale(.55); box-shadow: none; }
+.spin { animation: clipforge-spin 1s linear infinite; }
+@keyframes clipforge-spin { to { transform: rotate(360deg); } }
+
+@media (max-width: 1240px) {
+  .metadata-grid { grid-template-columns: repeat(3, 1fr); }
+}
