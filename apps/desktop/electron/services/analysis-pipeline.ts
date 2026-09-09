@@ -108,16 +108,16 @@ async function runFfmpeg(
   args: string[],
   options: FfmpegProgressOptions,
 ): Promise<void> {
-  if (!ffmpegPath) {
+  const binaryPath = ffmpegPath;
+  if (!binaryPath) {
     throw new Error('O binário do FFmpeg não foi encontrado nesta instalação.');
   }
 
   await new Promise<void>((resolve, reject) => {
-    const child = spawn(ffmpegPath, args, {
+    const child = spawn(binaryPath, args, {
       windowsHide: true,
       shell: false,
       signal: options.signal,
-      stdio: ['ignore', 'pipe', 'pipe'],
     });
 
     let stdoutBuffer = '';
@@ -167,7 +167,7 @@ async function runFfmpeg(
       stderrTail = `${stderrTail}${chunk}`.slice(-8_000);
     });
 
-    child.on('error', (error) => {
+    child.on('error', (error: Error) => {
       if (options.signal.aborted || error.name === 'AbortError') {
         settleReject(new Error('ANALYSIS_CANCELED'));
         return;
@@ -175,7 +175,7 @@ async function runFfmpeg(
       settleReject(error);
     });
 
-    child.on('close', (code) => {
+    child.on('close', (code: number | null) => {
       if (options.signal.aborted) {
         settleReject(new Error('ANALYSIS_CANCELED'));
         return;
