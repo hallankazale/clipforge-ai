@@ -1,5 +1,6 @@
 import { app, BrowserWindow, dialog, ipcMain } from 'electron';
 import path from 'node:path';
+import { probeVideo } from './services/video-engine';
 
 const DEV_SERVER_URL = 'http://localhost:5173';
 
@@ -39,6 +40,31 @@ ipcMain.handle('storage:choose-output-directory', async () => {
   }
 
   return result.filePaths[0];
+});
+
+ipcMain.handle('video:select-and-probe', async () => {
+  const result = await dialog.showOpenDialog({
+    title: 'Selecione um vídeo para analisar',
+    properties: ['openFile'],
+    filters: [
+      {
+        name: 'Vídeos',
+        extensions: ['mp4', 'mov', 'mkv', 'avi', 'webm', 'm4v', 'mpeg', 'mpg'],
+      },
+    ],
+  });
+
+  if (result.canceled || result.filePaths.length === 0) {
+    return { ok: false, canceled: true, error: null };
+  }
+
+  try {
+    const metadata = await probeVideo(result.filePaths[0]);
+    return { ok: true, canceled: false, metadata };
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Falha ao analisar o vídeo.';
+    return { ok: false, canceled: false, error: message };
+  }
 });
 
 app.whenReady().then(() => {
