@@ -79,11 +79,16 @@ function parseFrameRate(value: string | undefined): number | null {
   return numerator / denominator;
 }
 
+function getPathApi(filePath: string): typeof path.posix | typeof path.win32 {
+  return filePath.includes('\\') ? path.win32 : path.posix;
+}
+
 export function parseProbeOutput(filePath: string, output: ProbeOutput): VideoMetadata {
   const streams = output.streams ?? [];
   const videoStream = streams.find((stream) => stream.codec_type === 'video');
   const audioStream = streams.find((stream) => stream.codec_type === 'audio');
   const format = output.format ?? {};
+  const pathApi = getPathApi(filePath);
 
   const duration =
     parseNumber(format.duration) ??
@@ -92,8 +97,8 @@ export function parseProbeOutput(filePath: string, output: ProbeOutput): VideoMe
 
   return {
     filePath,
-    fileName: path.basename(filePath),
-    extension: path.extname(filePath).toLowerCase(),
+    fileName: pathApi.basename(filePath),
+    extension: pathApi.extname(filePath).toLowerCase(),
     durationSeconds: duration,
     width: videoStream?.width ?? null,
     height: videoStream?.height ?? null,
