@@ -9,14 +9,14 @@ O ClipForge AI recebe um arquivo de vídeo ou link, analisa conteúdo, áudio, f
 ## Princípios do projeto
 
 - Desktop-first para Windows
-- Interface moderna, responsiva e orientada a feedback em tempo real
+- Interface moderna e orientada a feedback em tempo real
 - Processamento de vídeo desacoplado da interface
 - Exportação final preferencialmente para HDD
 - IA isolada por contratos para permitir troca de modelo sem quebrar o app
-- Segurança por padrão: sem chaves embutidas no código, validação de entradas e IPC restrito
+- Segurança por padrão: sem chaves embutidas, validação de entradas e IPC restrito
 - Testes unitários, integração e E2E
 
-## Stack inicial
+## Stack
 
 - Electron
 - React
@@ -24,8 +24,23 @@ O ClipForge AI recebe um arquivo de vídeo ou link, analisa conteúdo, áudio, f
 - Vite
 - pnpm workspaces
 - Vitest
-- FFmpeg (engine de vídeo, próxima etapa)
-- Whisper/ASR via serviço local desacoplado (próxima etapa)
+- FFmpeg static 5.3.0
+- FFprobe static 3.1.0
+- Whisper/ASR via serviço local desacoplado (próxima fase)
+
+## O que já funciona
+
+- Interface inicial baseada nos mockups aprovados
+- Escolha de cortes de 1, 5 e 10 minutos
+- Seleção de Instagram, TikTok, Reels e YouTube
+- Seleção nativa da pasta de destino no Windows
+- Seleção nativa de um vídeo local
+- Validação de extensões de vídeo suportadas
+- Leitura real do arquivo com FFprobe
+- Exibição de duração, resolução, FPS, codec e tamanho
+- Comunicação segura entre React e Electron via preload/IPC
+- Testes unitários do parser de metadados
+- Workflow de CI para Windows
 
 ## Estrutura
 
@@ -33,13 +48,12 @@ O ClipForge AI recebe um arquivo de vídeo ou link, analisa conteúdo, áudio, f
 clipforge-ai/
 ├── apps/
 │   └── desktop/
-├── packages/
-│   ├── core/
-│   ├── ui/
-│   ├── video-engine/
-│   ├── ai/
-│   ├── storage/
-│   └── shared/
+│       ├── electron/
+│       │   ├── services/
+│       │   │   └── video-engine.ts
+│       │   ├── main.ts
+│       │   └── preload.ts
+│       └── src/
 ├── docs/
 ├── tests/
 └── scripts/
@@ -52,9 +66,9 @@ Arquivo ou link
    ↓
 Validação da origem
    ↓
-Leitura de metadados
+FFprobe: metadados
    ↓
-Extração de áudio e frames
+FFmpeg: extração de áudio e frames
    ↓
 Transcrição + análise de cenas
    ↓
@@ -69,15 +83,35 @@ Preset Instagram / TikTok / Reels / YouTube
 Exportação para HDD
 ```
 
-## Desenvolvimento
+## Rodar no Windows
 
-Requer Node.js 20+ e pnpm 9+.
+Requer Node.js 20+.
 
-```bash
+```powershell
+git clone https://github.com/hallankazale/clipforge-ai.git
+cd clipforge-ai
+npm install -g pnpm@9.15.4
 pnpm install
 pnpm dev
 ```
 
-## Status
+Se o repositório já estiver no computador:
 
-Fundação arquitetural em implementação. A primeira tela funcional seguirá os mockups aprovados do ClipForge AI.
+```powershell
+cd clipforge-ai
+git pull
+pnpm install
+pnpm dev
+```
+
+## Validação
+
+```powershell
+pnpm typecheck
+pnpm test
+pnpm build
+```
+
+## Próxima fase
+
+Implementar o pipeline real do botão **Iniciar análise**: fila de processamento, extração de áudio/frames com FFmpeg, progresso em tempo real, transcrição e detecção de cenas.
