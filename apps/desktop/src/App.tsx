@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import {
   AlertCircle,
   CheckCircle2,
@@ -6,18 +6,15 @@ import {
   FileVideo2,
   FolderOpen,
   Gauge,
-  History,
-  Home,
   Link2,
   LoaderCircle,
   Monitor,
   Play,
-  Scissors,
-  Settings,
   Sparkles,
-  Upload,
   Video,
 } from 'lucide-react';
+import { AppSidebar, type AppSection } from './components/AppSidebar';
+import { ProcessingScreen } from './components/ProcessingScreen';
 
 type DurationOption = 1 | 5 | 10;
 type Platform = 'Instagram' | 'TikTok' | 'Reels' | 'YouTube';
@@ -64,6 +61,7 @@ function formatFileSize(bytes: number | null): string {
 }
 
 function App() {
+  const [section, setSection] = useState<AppSection>('home');
   const [duration, setDuration] = useState<DurationOption>(1);
   const [selectedPlatforms, setSelectedPlatforms] = useState<Platform[]>(['Instagram']);
   const [sourceUrl, setSourceUrl] = useState('');
@@ -71,6 +69,13 @@ function App() {
   const [videoStatus, setVideoStatus] = useState<'idle' | 'probing' | 'ready' | 'error'>('idle');
   const [videoError, setVideoError] = useState<string | null>(null);
   const [outputPath, setOutputPath] = useState('D:\\Videos\\ClipForge\\Exportados');
+
+  const [analysisJobId, setAnalysisJobId] = useState<string | null>(null);
+  const [analysisProgress, setAnalysisProgress] = useState<AnalysisProgress | null>(null);
+  const [analysisLog, setAnalysisLog] = useState<AnalysisProgress[]>([]);
+  const [analysisResult, setAnalysisResult] = useState<AnalysisResult | null>(null);
+  const [analysisError, setAnalysisError] = useState<string | null>(null);
+  const [isAnalysisRunning, setIsAnalysisRunning] = useState(false);
 
   const summaryFormats = useMemo(
     () => selectedPlatforms.join(', ') || 'A definir',
@@ -80,6 +85,33 @@ function App() {
   const sourceSummary = sourceUrl.trim()
     ? 'Link de vídeo'
     : videoMetadata?.fileName ?? 'Nenhum vídeo selecionado';
+
+  useEffect(() => {
+    const bridge = window.clipforge;
+    if (!bridge) return undefined;
+
+    const unsubscribeProgress = bridge.onAnalysisProgress((progress) => {
+      setAnalysisProgress(progress);
+      setAnalysisLog((current) => [...current.slice(-49), progress]);
+    });
+
+    const unsubscribeComplete = bridge.onAnalysisComplete((result) => {
+      setAnalysisResult(result);
+      setAnalysisError(null);
+      setIsAnalysisRunning(false);
+    });
+
+    const unsubscribeError = bridge.onAnalysisError((payload) => {
+      setAnalysisError(payload.error);
+      setIsAnalysisRunning(false);
+    });
+
+    return () => {
+      unsubscribeProgress();
+      unsubscribeComplete();
+      unsubscribeError();
+    };
+  }, []);
 
   function togglePlatform(platform: Platform): void {
     setSelectedPlatforms((current) =>
@@ -120,6 +152,7 @@ function App() {
     setSourceUrl('');
     setVideoMetadata(result.metadata);
     setVideoStatus('ready');
+    resetAnalysisState();
   }
 
   function updateSourceUrl(value: string): void {
@@ -128,37 +161,85 @@ function App() {
       setVideoMetadata(null);
       setVideoStatus('idle');
       setVideoError(null);
+      resetAnalysisState();
     }
+  }
+
+  function resetAnalysisState(): void {
+    setAnalysisJobId(null);
+    setAnalysisProgress(null);
+    setAnalysisLog([]);
+    setAnalysisResult(null);
+    setAnalysisError(null);
+    setIsAnalysisRunning(false);
+  }
+
+  async function startAnalysis(): Promise<void> {
+    const bridge = window.clipforge;
+    if (!bridge) {
+      setVideoError('A ponte segura do Electron não está disponível.');
+      return;
+    }
+
+    if (!videoMetadata) {
+      setVideoError(
+        sourceUrl.trim()
+          ? 'A análise direta por link será ligada na próxima etapa. Por enquanto, selecione um vídeo local.'
+          : 'Selecione um vídeo antes de iniciar a análise.',
+      );
+      return;
+    }
+
+    setAnalysisProgress(null);
+    setAnalysisLog([]);
+    setAnalysisResult(null);
+    setAnalysisError(null);
+    setIsAnalysisRunning(true);
+    setSection('processing');
+
+    const result = await bridge.startAnalysis({
+      filePath: videoMetadata.filePath,
+      outputPath,
+    });
+
+    if (!result.ok) {
+      setAnalysisError(result.error);
+      setIsAnalysisRunning(false);
+      return;
+    }
+
+    setAnalysisJobId(result.jobId);
+  }
+
+  async function cancelAnalysis(): Promise<void> {
+    if (!analysisJobId || !window.clipforge) return;
+    await window.clipforge.cancelAnalysis(analysisJobId);
+  }
+
+  function returnHome(): void {
+    if (isAnalysisRunning) return;
+    setSection('home');
+  }
+
+  if (section === 'processing') {
+    return (
+      <ProcessingScreen
+        metadata={videoMetadata}
+        progress={analysisProgress}
+        log={analysisLog}
+        result={analysisResult}
+        error={analysisError}
+        isRunning={isAnalysisRunning}
+        outputPath={outputPath}
+        onCancel={cancelAnalysis}
+        onBack={returnHome}
+      />
+    );
   }
 
   return (
     <div className="app-shell">
-      <aside className="sidebar">
-        <div className="brand">
-          <div className="brand-mark">C</div>
-          <div>
-            <strong>ClipForge AI</strong>
-            <span>v0.2.0</span>
-          </div>
-        </div>
-
-        <nav className="nav-list" aria-label="Navegação principal">
-          <button className="nav-item active"><Home size={19} />Início</button>
-          <button className="nav-item"><FolderOpen size={19} />Projetos</button>
-          <button className="nav-item"><Clock3 size={19} />Processamento</button>
-          <button className="nav-item"><Scissors size={19} />Cortes</button>
-          <button className="nav-item"><Upload size={19} />Exportação</button>
-          <button className="nav-item"><History size={19} />Histórico</button>
-          <button className="nav-item"><Settings size={19} />Configurações</button>
-        </nav>
-
-        <div className="storage-mini">
-          <span>Armazenamento preferido</span>
-          <strong>HDD (D:)</strong>
-          <div className="storage-bar"><i /></div>
-          <small>Arquivos finais no HD</small>
-        </div>
-      </aside>
+      <AppSidebar active="home" onNavigate={setSection} />
 
       <main className="workspace">
         <section className="hero panel">
@@ -278,7 +359,7 @@ function App() {
               <code>{outputPath}</code>
               <button onClick={chooseOutputDirectory}>Alterar...</button>
             </div>
-            <p className="hint">Recomendado: salve os vídeos finais no HDD para preservar espaço e reduzir gravações pesadas no SSD.</p>
+            <p className="hint">O ClipForge usará esta unidade também para os arquivos pesados da pré-análise, evitando gravar o pipeline no SSD.</p>
           </div>
         </section>
       </main>
@@ -297,8 +378,14 @@ function App() {
           <div><span>Destino</span><strong>{outputPath}</strong></div>
         </div>
 
-        <button className="primary-action" disabled={!videoMetadata && !sourceUrl.trim()}><Play size={18} fill="currentColor" />Iniciar análise</button>
-        <p className="summary-note">O arquivo local já é lido pelo FFprobe. Na próxima fase, este botão iniciará transcrição, detecção de cenas e geração dos cortes.</p>
+        <button
+          className="primary-action"
+          disabled={(!videoMetadata && !sourceUrl.trim()) || isAnalysisRunning}
+          onClick={startAnalysis}
+        >
+          <Play size={18} fill="currentColor" />Iniciar análise
+        </button>
+        <p className="summary-note">Agora o botão inicia um pipeline real: validação, extração de áudio e geração de quadros com progresso em tempo real.</p>
       </aside>
     </div>
   );
