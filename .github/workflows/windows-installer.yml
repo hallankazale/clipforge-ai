@@ -1,0 +1,48 @@
+name: Windows Installer
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'apps/desktop/**'
+      - 'package.json'
+      - '.github/workflows/windows-installer.yml'
+  workflow_dispatch:
+
+jobs:
+  build-installer:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9.15.4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Install dependencies
+        run: pnpm install --no-frozen-lockfile
+
+      - name: Typecheck
+        run: pnpm typecheck
+
+      - name: Unit tests
+        run: pnpm test
+
+      - name: Build Windows installer
+        run: pnpm dist:win
+
+      - name: Upload installer artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ClipForge-AI-Windows-Installer
+          path: apps/desktop/release/*.exe
+          if-no-files-found: error
+          retention-days: 30
