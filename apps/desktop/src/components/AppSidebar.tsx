@@ -1,4 +1,5 @@
 import {
+  Bot,
   Clock3,
   FolderOpen,
   History,
@@ -8,7 +9,7 @@ import {
   Upload,
 } from 'lucide-react';
 
-export type AppSection = 'home' | 'processing';
+export type AppSection = 'home' | 'processing' | 'pilot';
 
 interface AppSidebarProps {
   active: AppSection;
@@ -22,7 +23,7 @@ export function AppSidebar({ active, onNavigate }: AppSidebarProps) {
         <div className="brand-mark">C</div>
         <div>
           <strong>ClipForge AI</strong>
-          <span>v0.3.0</span>
+          <span>v0.5.0</span>
         </div>
       </div>
 
@@ -32,6 +33,12 @@ export function AppSidebar({ active, onNavigate }: AppSidebarProps) {
           onClick={() => onNavigate('home')}
         >
           <Home size={19} />Início
+        </button>
+        <button
+          className={`nav-item ${active === 'pilot' ? 'active' : ''}`}
+          onClick={() => onNavigate('pilot')}
+        >
+          <Bot size={19} />Piloto IA
         </button>
         <button className="nav-item"><FolderOpen size={19} />Projetos</button>
         <button
