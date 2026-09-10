@@ -2,7 +2,7 @@ import { execFile } from 'node:child_process';
 import { access } from 'node:fs/promises';
 import path from 'node:path';
 import { promisify } from 'node:util';
-import ffprobeStatic from 'ffprobe-static';
+import { getFfprobePath } from './static-binaries';
 
 const execFileAsync = promisify(execFile);
 
@@ -121,8 +121,9 @@ export async function probeVideo(filePath: string): Promise<VideoMetadata> {
     throw new Error(`Formato de vídeo não suportado: ${extension || 'sem extensão'}.`);
   }
 
+  const ffprobePath = getFfprobePath();
   await access(filePath);
-  await access(ffprobeStatic.path);
+  await access(ffprobePath);
 
   const args = [
     '-v',
@@ -135,7 +136,7 @@ export async function probeVideo(filePath: string): Promise<VideoMetadata> {
   ];
 
   try {
-    const { stdout } = await execFileAsync(ffprobeStatic.path, args, {
+    const { stdout } = await execFileAsync(ffprobePath, args, {
       windowsHide: true,
       maxBuffer: 10 * 1024 * 1024,
     });
