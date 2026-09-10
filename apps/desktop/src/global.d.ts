@@ -21,6 +21,7 @@ declare global {
     | { ok: false; canceled: boolean; error: string | null };
 
   type CutPlatform = 'Instagram' | 'TikTok' | 'Reels' | 'YouTube';
+  type ViralLabel = 'Baixo' | 'Médio' | 'Alto' | 'Muito alto';
 
   type AnalysisStage =
     | 'preparing'
@@ -42,6 +43,17 @@ declare global {
     workspacePath: string;
   };
 
+  type PublicationPackage = {
+    viralScore: number;
+    viralLabel: ViralLabel;
+    title: string;
+    description: string;
+    hashtags: string[];
+    metadataFilePath: string;
+    textFilePath: string;
+    captionsStatus: 'pending-local-transcription';
+  };
+
   type RenderedCut = {
     id: string;
     rank: number;
@@ -52,6 +64,7 @@ declare global {
     score: number;
     audioActivity: number;
     visualActivity: number;
+    publication: PublicationPackage;
   };
 
   type AnalysisResult = {
