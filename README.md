@@ -1,21 +1,22 @@
 # ClipForge AI
 
-Aplicativo desktop para transformar vídeos longos em cortes inteligentes prontos para Instagram, TikTok, Reels e YouTube.
+Aplicativo desktop para Windows que transforma vídeos longos em cortes preparados para Instagram, TikTok, Reels e YouTube.
 
-## Objetivo
+## Estado atual
 
-O ClipForge AI recebe um arquivo de vídeo ou link, analisa conteúdo, áudio, fala e mudanças de cena, identifica trechos relevantes e gera cortes configuráveis de 1, 5 ou 10 minutos.
+O ClipForge já processa arquivos locais de verdade com FFmpeg/FFprobe, cria cortes de 1, 5 ou 10 minutos, adapta o formato por plataforma, salva tudo no HDD escolhido e gera um pacote de publicação para cada corte.
 
-## Princípios do projeto
+A compreensão semântica do que foi falado e as legendas automáticas ainda dependem do próximo módulo local de transcrição. O produto não inventa uma transcrição quando ela não existe.
+
+## Princípios
 
 - Desktop-first para Windows
-- Interface moderna e orientada a feedback em tempo real
-- Processamento de vídeo desacoplado da interface
-- Arquivos pesados e saída preferencialmente no HDD escolhido pelo usuário
-- IA isolada por contratos para permitir troca de modelo sem quebrar o app
-- Segurança por padrão: sem chaves embutidas, validação de entradas e IPC restrito
-- Processos externos executados sem shell
-- Testes unitários, integração e E2E
+- Interface moderna com feedback em tempo real
+- Processamento desacoplado da interface
+- Arquivos pesados e vídeos finais no HDD escolhido
+- Segurança por padrão: preload/IPC restrito, Node isolado da UI e processos externos sem shell
+- IA/transcrição desacopladas para permitir trocar o modelo sem quebrar o aplicativo
+- Testes unitários e CI para Windows
 
 ## Stack
 
@@ -27,107 +28,91 @@ O ClipForge AI recebe um arquivo de vídeo ou link, analisa conteúdo, áudio, f
 - Vitest
 - FFmpeg static 5.3.0
 - FFprobe static 3.1.0
-- Whisper/ASR via serviço local desacoplado (próxima fase)
+- electron-builder + NSIS para o instalador Windows
+- Whisper/ASR local: próxima camada
 
 ## O que já funciona
 
-- Interface inicial baseada nos mockups aprovados
-- Escolha de cortes de 1, 5 e 10 minutos
-- Seleção de Instagram, TikTok, Reels e YouTube
-- Seleção nativa da pasta de destino no Windows
-- Seleção nativa de um vídeo local
-- Validação de extensões de vídeo suportadas
-- Leitura real do arquivo com FFprobe
-- Exibição de duração, resolução, FPS, codec e tamanho
-- Botão **Iniciar análise** ligado a um job real
-- Pipeline FFmpeg assíncrono sem travar a interface
-- Extração de áudio WAV mono 16 kHz para futura transcrição
-- Extração de quadros reduzidos a cada 10 segundos para futura análise visual
-- Tela **Processamento** com barra de progresso e log em tempo real
-- Cancelamento do job com limpeza dos arquivos parciais
-- Workspace de análise criado dentro da pasta escolhida pelo usuário
-- Comunicação segura entre React e Electron via preload/IPC
-- Testes unitários de metadados e progresso do FFmpeg
-- Workflow de CI para Windows
+- Seleção nativa de vídeo no Windows
+- FFprobe: duração, resolução, FPS, codecs e tamanho
+- Cortes de 1, 5 e 10 minutos
+- Instagram, TikTok, Reels e YouTube
+- Ranking local por atividade de áudio e variação visual
+- Redução de sobreposição entre cortes sugeridos
+- TikTok/Reels/Instagram em 1080x1920
+- Fundo desfocado para adaptar vídeo horizontal ao formato vertical
+- YouTube em 1920x1080
+- Normalização de áudio para publicação
+- Renderização MP4 real com FFmpeg
+- Barra de progresso e log em tempo real
+- Cancelamento de processamento
+- Pasta final no HDD escolhido
+- Botão para abrir a pasta dos vídeos
+- Nota de potencial viral de 0 a 100
+- Título e descrição com emojis
+- Até 5 hashtags por pacote, inclusive TikTok
+- Arquivos `.json` e `.txt` de publicação ao lado de cada vídeo
+- Botão para copiar título + descrição + hashtags
+- Instalador Windows `.exe` gerado automaticamente pelo GitHub Actions
 
-## Estrutura
+## Estrutura de saída
 
 ```text
-clipforge-ai/
-├── apps/
-│   └── desktop/
-│       ├── electron/
-│       │   ├── services/
-│       │   │   ├── analysis-pipeline.ts
-│       │   │   └── video-engine.ts
-│       │   ├── main.ts
-│       │   └── preload.ts
-│       └── src/
-│           ├── components/
-│           │   ├── AppSidebar.tsx
-│           │   └── ProcessingScreen.tsx
-│           └── App.tsx
-├── docs/
-├── tests/
-└── scripts/
+<PASTA_ESCOLHIDA>\Cortes\<nome-do-video>\<JOB_ID>\
+├── tiktok\
+│   ├── corte-01.mp4
+│   ├── corte-01-publicacao.json
+│   └── corte-01-publicacao.txt
+├── reels\
+├── instagram\
+└── youtube\
 ```
+
+Exemplo do pacote de publicação:
+
+```text
+NOTA VIRAL: 88/100 — Muito alto
+
+TÍTULO
+🔥 Corte #1 — momento com forte potencial de retenção
+
+DESCRIÇÃO
+🔥 Um dos momentos mais fortes deste vídeo.
+📊 Potencial de viralização: 88/100.
+👀 Assista até o final e conte o que achou.
+
+#paravoce #tiktokbrasil #viral #cortes #video
+```
+
+A nota é uma estimativa local baseada nos sinais que o sistema consegue medir. Ela não garante viralização.
 
 ## Pipeline atual
 
 ```text
 Arquivo local
    ↓
-Validação da origem
+FFprobe
    ↓
-FFprobe: metadados
+Áudio + frames no HDD
    ↓
-Criar workspace no HDD escolhido
+Detecção de silêncio / atividade
    ↓
-FFmpeg: áudio WAV mono 16 kHz
+Variação visual
    ↓
-FFmpeg: quadro 640px a cada 10 segundos
+Ranking dos trechos
    ↓
-Arquivos prontos para transcrição e análise inteligente
+Cortes de 1 / 5 / 10 min
+   ↓
+Adaptação por plataforma + normalização de áudio
+   ↓
+MP4 final
+   ↓
+Nota viral + título + descrição + hashtags
 ```
 
-Os arquivos temporários desta fase ficam em:
-
-```text
-<PASTA_ESCOLHIDA>\_ClipForge\analises\<JOB_ID>\
-├── audio-16khz.wav
-└── frames\
-    ├── frame-000001.jpg
-    ├── frame-000002.jpg
-    └── ...
-```
-
-## Fluxo alvo do produto
-
-```text
-Arquivo ou link
-   ↓
-Validação da origem
-   ↓
-Pré-processamento FFmpeg/FFprobe
-   ↓
-Transcrição + análise de cenas
-   ↓
-Ranking de momentos relevantes
-   ↓
-Cortes de 1 / 5 / 10 minutos
-   ↓
-Revisão pelo usuário
-   ↓
-Preset Instagram / TikTok / Reels / YouTube
-   ↓
-Exportação para HDD
-```
-
-## Rodar no Windows
+## Rodar para desenvolvimento
 
 Requer Node.js 20+.
-
-Como o PowerShell de alguns computadores bloqueia `pnpm.ps1`, os exemplos abaixo usam `pnpm.cmd`.
 
 ```powershell
 git clone https://github.com/hallankazale/clipforge-ai.git
@@ -137,13 +122,26 @@ pnpm.cmd install
 pnpm.cmd dev
 ```
 
-Se o repositório já estiver no computador:
+Atualizar uma cópia existente:
 
 ```powershell
 cd clipforge-ai
 git pull
 pnpm.cmd install
 pnpm.cmd dev
+```
+
+## Gerar o instalador localmente
+
+```powershell
+pnpm.cmd install
+pnpm.cmd dist:win
+```
+
+O instalador é gerado em:
+
+```text
+apps\desktop\release\ClipForge-AI-Setup-0.4.0.exe
 ```
 
 ## Validação
@@ -154,6 +152,13 @@ pnpm.cmd test
 pnpm.cmd build
 ```
 
-## Próxima fase
+## Próxima camada
 
-Adicionar **transcrição local**, detecção de mudanças de cena e a primeira camada de ranking inteligente. Só depois dessa camada o sistema começará a sugerir os melhores trechos e gerar cortes automaticamente.
+Adicionar transcrição local para que o ClipForge possa:
+
+- entender o assunto de cada trecho;
+- gerar títulos ligados ao conteúdo real;
+- criar descrições específicas;
+- gerar hashtags específicas ao nicho;
+- produzir legendas sincronizadas e opcionais para queimar no vídeo;
+- melhorar a nota de potencial viral usando gancho inicial, densidade de fala e conteúdo semântico.
