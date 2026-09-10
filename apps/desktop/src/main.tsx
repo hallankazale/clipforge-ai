@@ -4,6 +4,7 @@ import App from './App';
 import './styles.css';
 import './video-metadata.css';
 import './processing.css';
+import './cuts-result.css';
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
