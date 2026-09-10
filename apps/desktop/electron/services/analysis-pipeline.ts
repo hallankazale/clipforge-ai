@@ -2,12 +2,19 @@ import { spawn } from 'node:child_process';
 import { mkdir, rm } from 'node:fs/promises';
 import path from 'node:path';
 import ffmpegPath from 'ffmpeg-static';
+import {
+  createSmartCuts,
+  type CutPlatform,
+  type RenderedCut,
+} from './smart-cut-engine';
 import { probeVideo, type VideoMetadata } from './video-engine';
 
 export type AnalysisStage =
   | 'preparing'
   | 'audio'
   | 'frames'
+  | 'scoring'
+  | 'cutting'
   | 'finalizing'
   | 'completed'
   | 'canceled';
@@ -29,12 +36,18 @@ export interface AnalysisResult {
   framesDirectory: string;
   frameIntervalSeconds: number;
   metadata: VideoMetadata;
+  cutsDirectory: string;
+  cuts: RenderedCut[];
+  cutDurationMinutes: 1 | 5 | 10;
+  platforms: CutPlatform[];
 }
 
 export interface AnalysisPipelineInput {
   jobId: string;
   filePath: string;
   outputPath: string;
+  cutDurationMinutes: 1 | 5 | 10;
+  platforms: CutPlatform[];
   signal: AbortSignal;
   onProgress: (progress: AnalysisProgress) => void;
 }
@@ -204,6 +217,9 @@ export async function runAnalysisPipeline(
   if (!path.isAbsolute(input.outputPath)) {
     throw new Error('A pasta de saída precisa ser um caminho absoluto.');
   }
+  if (![1, 5, 10].includes(input.cutDurationMinutes)) {
+    throw new Error('A duração dos cortes precisa ser 1, 5 ou 10 minutos.');
+  }
 
   const workspacePath = path.join(
     input.outputPath,
@@ -231,7 +247,7 @@ export async function runAnalysisPipeline(
       jobId: input.jobId,
       stage: 'preparing',
       percent: 8,
-      message: 'Vídeo validado. Preparando extração de mídia...',
+      message: 'Vídeo validado. Preparando análise local...',
       detail: `${metadata.width ?? '?'} × ${metadata.height ?? '?'} · ${Math.round(metadata.durationSeconds)}s`,
       workspacePath,
     });
@@ -243,7 +259,7 @@ export async function runAnalysisPipeline(
         jobId: input.jobId,
         stage: 'audio',
         percent: 10,
-        message: 'Extraindo áudio para futura transcrição...',
+        message: 'Extraindo áudio para análise...',
         detail: 'Mono · 16 kHz · WAV',
         workspacePath,
       });
@@ -273,7 +289,7 @@ export async function runAnalysisPipeline(
           workspacePath,
           durationSeconds: metadata.durationSeconds,
           startPercent: 10,
-          endPercent: 52,
+          endPercent: 34,
           signal: input.signal,
           onProgress: input.onProgress,
         },
@@ -284,7 +300,7 @@ export async function runAnalysisPipeline(
       emitProgress(input.onProgress, {
         jobId: input.jobId,
         stage: 'audio',
-        percent: 52,
+        percent: 34,
         message: 'O vídeo não possui faixa de áudio. Etapa ignorada.',
         workspacePath,
       });
@@ -293,7 +309,7 @@ export async function runAnalysisPipeline(
     emitProgress(input.onProgress, {
       jobId: input.jobId,
       stage: 'frames',
-      percent: 55,
+      percent: 38,
       message: 'Extraindo quadros para análise visual...',
       detail: `1 quadro a cada ${FRAME_INTERVAL_SECONDS}s`,
       workspacePath,
@@ -322,8 +338,8 @@ export async function runAnalysisPipeline(
         message: 'Extraindo quadros do vídeo...',
         workspacePath,
         durationSeconds: metadata.durationSeconds,
-        startPercent: 55,
-        endPercent: 94,
+        startPercent: 38,
+        endPercent: 60,
         signal: input.signal,
         onProgress: input.onProgress,
       },
@@ -331,10 +347,46 @@ export async function runAnalysisPipeline(
 
     emitProgress(input.onProgress, {
       jobId: input.jobId,
+      stage: 'scoring',
+      percent: 63,
+      message: 'Pontuando os melhores momentos do vídeo...',
+      detail: 'Áudio ativo + variação visual',
+      workspacePath,
+    });
+
+    const smartCuts = await createSmartCuts({
+      jobId: input.jobId,
+      filePath: input.filePath,
+      outputPath: input.outputPath,
+      sourceDurationSeconds: metadata.durationSeconds,
+      requestedDurationMinutes: input.cutDurationMinutes,
+      platforms: input.platforms,
+      framesDirectory,
+      frameIntervalSeconds: FRAME_INTERVAL_SECONDS,
+      hasAudio: Boolean(metadata.audioCodec),
+      signal: input.signal,
+      onProgress: (event) => {
+        const percent = event.phase === 'scoring'
+          ? Math.round(63 + event.percent * 0.07)
+          : Math.round(72 + event.percent * 0.24);
+
+        emitProgress(input.onProgress, {
+          jobId: input.jobId,
+          stage: event.phase,
+          percent,
+          message: event.message,
+          detail: event.detail,
+          workspacePath,
+        });
+      },
+    });
+
+    emitProgress(input.onProgress, {
+      jobId: input.jobId,
       stage: 'finalizing',
-      percent: 97,
-      message: 'Organizando arquivos para a próxima etapa da IA...',
-      detail: workspacePath,
+      percent: 98,
+      message: 'Conferindo os vídeos recortados...',
+      detail: smartCuts.cutsDirectory,
       workspacePath,
     });
 
@@ -342,8 +394,8 @@ export async function runAnalysisPipeline(
       jobId: input.jobId,
       stage: 'completed',
       percent: 100,
-      message: 'Pré-análise concluída.',
-      detail: 'Áudio e quadros preparados para transcrição e análise inteligente.',
+      message: `${smartCuts.renderedCuts.length} arquivo(s) de vídeo gerado(s).`,
+      detail: smartCuts.cutsDirectory,
       workspacePath,
     });
 
@@ -354,6 +406,10 @@ export async function runAnalysisPipeline(
       framesDirectory,
       frameIntervalSeconds: FRAME_INTERVAL_SECONDS,
       metadata,
+      cutsDirectory: smartCuts.cutsDirectory,
+      cuts: smartCuts.renderedCuts,
+      cutDurationMinutes: input.cutDurationMinutes,
+      platforms: input.platforms,
     };
   } catch (error) {
     const canceled =
