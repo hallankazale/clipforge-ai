@@ -8,7 +8,8 @@
   "scripts": {
     "dev": "tsc -p tsconfig.electron.json && concurrently -k \"vite\" \"tsc -p tsconfig.electron.json --watch --preserveWatchOutput\" \"wait-on tcp:5173 && electron .\"",
     "build": "vite build && tsc -p tsconfig.electron.json",
-    "dist:win": "pnpm build && electron-builder --win nsis --x64",
+    "verify:renderer": "node ../../scripts/verify-electron-renderer-build.mjs",
+    "dist:win": "pnpm build && pnpm verify:renderer && electron-builder --win nsis --x64",
     "typecheck": "tsc --noEmit -p tsconfig.json && tsc --noEmit -p tsconfig.electron.json"
   },
   "dependencies": {
