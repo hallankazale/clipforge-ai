@@ -93,13 +93,24 @@ function clampScore(score: number): number {
   return Math.round(Math.min(100, Math.max(0, score)));
 }
 
+function normalizeMetrics(metrics: QualityMetrics): QualityMetrics {
+  return {
+    hook: clampScore(metrics.hook),
+    storytelling: clampScore(metrics.storytelling),
+    visualConsistency: clampScore(metrics.visualConsistency),
+    pacing: clampScore(metrics.pacing),
+    voiceClarity: clampScore(metrics.voiceClarity),
+    captionReadability: clampScore(metrics.captionReadability),
+    originality: clampScore(metrics.originality),
+    platformFit: clampScore(metrics.platformFit),
+  };
+}
+
 export function evaluateQualityGate(
   metrics: QualityMetrics,
   minimumScore = 82,
 ): QualityGateResult {
-  const normalized = Object.fromEntries(
-    Object.entries(metrics).map(([key, value]) => [key, clampScore(value)]),
-  ) as QualityMetrics;
+  const normalized = normalizeMetrics(metrics);
 
   const weightedScore = (Object.keys(weights) as QualityMetricKey[]).reduce(
     (total, key) => total + normalized[key] * weights[key],
