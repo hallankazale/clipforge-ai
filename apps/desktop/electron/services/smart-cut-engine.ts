@@ -2,11 +2,11 @@ import { execFile } from 'node:child_process';
 import { readdir, stat, mkdir } from 'node:fs/promises';
 import path from 'node:path';
 import { promisify } from 'node:util';
-import ffmpegPath from 'ffmpeg-static';
 import {
   createPublicationPackage,
   type PublicationPackage,
 } from './publishing-metadata';
+import { getFfmpegPath } from './static-binaries';
 
 const execFileAsync = promisify(execFile);
 
@@ -92,7 +92,7 @@ async function detectSilences(
   sourceDurationSeconds: number,
   signal: AbortSignal,
 ): Promise<SilenceInterval[]> {
-  if (!ffmpegPath) throw new Error('O binário do FFmpeg não foi encontrado nesta instalação.');
+  const ffmpegPath = getFfmpegPath();
 
   try {
     const { stderr } = await execFileAsync(
@@ -356,7 +356,7 @@ async function renderCut(
   platform: CutPlatform,
   destination: string,
 ): Promise<void> {
-  if (!ffmpegPath) throw new Error('O binário do FFmpeg não foi encontrado nesta instalação.');
+  const ffmpegPath = getFfmpegPath();
 
   try {
     await execFileAsync(ffmpegPath, buildRenderArgs(input, candidate, platform, destination), {
