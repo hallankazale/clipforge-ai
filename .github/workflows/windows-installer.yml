@@ -6,6 +6,7 @@ on:
     paths:
       - 'apps/desktop/**'
       - 'package.json'
+      - 'tests/**'
       - '.github/workflows/windows-installer.yml'
   workflow_dispatch:
 
@@ -38,6 +39,19 @@ jobs:
 
       - name: Build Windows installer
         run: pnpm dist:win
+
+      - name: Verify unpacked media binaries
+        shell: pwsh
+        run: |
+          $root = 'apps/desktop/release/win-unpacked/resources/app.asar.unpacked/node_modules'
+          $ffmpeg = Get-ChildItem "$root/ffmpeg-static" -Filter ffmpeg.exe -Recurse -ErrorAction SilentlyContinue | Select-Object -First 1
+          $ffprobe = Get-ChildItem "$root/ffprobe-static" -Filter ffprobe.exe -Recurse -ErrorAction SilentlyContinue | Select-Object -First 1
+
+          if (-not $ffmpeg) { throw 'ffmpeg.exe não foi encontrado em app.asar.unpacked.' }
+          if (-not $ffprobe) { throw 'ffprobe.exe não foi encontrado em app.asar.unpacked.' }
+
+          Write-Host "FFmpeg OK: $($ffmpeg.FullName)"
+          Write-Host "FFprobe OK: $($ffprobe.FullName)"
 
       - name: Upload installer artifact
         uses: actions/upload-artifact@v4
