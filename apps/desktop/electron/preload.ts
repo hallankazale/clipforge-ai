@@ -10,6 +10,17 @@ function subscribe<T>(channel: string, callback: (payload: T) => void): Unsubscr
 
 contextBridge.exposeInMainWorld('clipforge', {
   platform: process.platform,
+  pilot: {
+    snapshot: () => ipcRenderer.invoke('pilot:snapshot'),
+    importCredentials: () => ipcRenderer.invoke('pilot:import'),
+    connect: (platform: string) => ipcRenderer.invoke('pilot:connect', platform),
+    disconnect: (id: string) => ipcRenderer.invoke('pilot:disconnect', id),
+    start: (input: unknown) => ipcRenderer.invoke('pilot:start', input),
+    cancel: (id: string) => ipcRenderer.invoke('pilot:cancel', id),
+    preview: (id: string) => ipcRenderer.invoke('pilot:preview', id),
+    sendTikTokDraft: (id: string) => ipcRenderer.invoke('pilot:tiktok-draft', id),
+    onChange: (callback: () => void) => subscribe('pilot:change', callback),
+  },
   selectOutputDirectory: (): Promise<string | null> =>
     ipcRenderer.invoke('storage:choose-output-directory'),
   openDirectory: (targetPath: string) =>

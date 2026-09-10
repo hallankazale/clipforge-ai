@@ -1,3 +1,5 @@
+import { registerPilot } from './pilot/ipc';
+import type { PilotRuntime } from './pilot/runtime';
 import { randomUUID } from 'node:crypto';
 import { app, BrowserWindow, dialog, ipcMain, shell } from 'electron';
 import path from 'node:path';
@@ -7,6 +9,10 @@ import {
 } from './services/analysis-pipeline';
 import type { CutPlatform } from './services/smart-cut-engine';
 import { probeVideo } from './services/video-engine';
+
+let pilotRuntime: PilotRuntime | undefined;
+const singleInstance = app.requestSingleInstanceLock();
+if (!singleInstance) app.quit();
 
 const DEV_SERVER_URL = 'http://localhost:5173';
 const activeAnalyses = new Map<string, AbortController>();
@@ -186,6 +192,8 @@ ipcMain.handle('analysis:cancel', async (_event, jobId: string) => {
 });
 
 app.whenReady().then(() => {
+  if (!singleInstance) return;
+  pilotRuntime = registerPilot();
   createMainWindow();
 
   app.on('activate', () => {
@@ -196,6 +204,7 @@ app.whenReady().then(() => {
 });
 
 app.on('before-quit', () => {
+  pilotRuntime?.stop();
   for (const controller of activeAnalyses.values()) {
     controller.abort();
   }

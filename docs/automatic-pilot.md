@@ -157,29 +157,10 @@ apps/
   mobile (fase posterior)
 ```
 
-## Estado atual desta fase
+## Implementação 0.6.0
 
-Já implementado no desktop:
-
-- tela Piloto IA
-- presets iniciais de nicho
-- frequência e duração
-- seleção YouTube Shorts/TikTok
-- nota mínima configurável
-- regeneração automática configurável
-- limite de tentativas
-- domínio real do Quality Gate
-- testes unitários do Quality Gate
-- persistência local da configuração
-
-Ainda não implementado nesta fase:
-
-- OAuth YouTube/TikTok
-- pesquisa automática de pautas
-- geração de roteiro por IA
-- geração de vídeo/voz
-- avaliação automática dos oito sinais a partir do vídeo final
-- fila persistente de publicação
-- upload/agendamento real
-
-Esses itens serão conectados incrementalmente sem fingir estados ou publicar conteúdo antes de as integrações reais existirem.
+A base acima agora está conectada ao processo principal do Electron. Consulte
+[pilot-setup.md](pilot-setup.md) para configuração e [pilot-validation.md](pilot-validation.md)
+para arquitetura, testes e limitações. YouTube tem upload recuperável e agendamento;
+TikTok utiliza envio autorizado à caixa de entrada, com conclusão da postagem no aplicativo.
+A execução com credenciais reais e a homologação Windows continuam pendentes.

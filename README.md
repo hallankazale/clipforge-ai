@@ -2,7 +2,27 @@
 
 Aplicativo desktop para Windows que transforma vídeos longos em cortes preparados para Instagram, TikTok, Reels e YouTube.
 
-## Estado atual
+## Piloto IA 0.6.0
+
+Produção de vídeos narrados com roteiro por IA, pesquisa de fontes para temas factuais,
+imagens originais, movimento de câmera, voz sintética identificada e legendas sincronizadas.
+Renderização local com FFmpeg. Não é geração de vídeo 3D ou filmagem animada por difusão.
+
+- Avaliação técnica do MP4 final e crítica editorial por IA antes de liberar envio.
+- Regeneração limitada com invalidação de voz/legendas/cenas quando o roteiro muda.
+- Fila persistente, cancelamento e proteção contra duplicação após upload interrompido.
+- OAuth oficial, renovação de tokens e armazenamento criptografado pelo sistema.
+- YouTube: upload recuperável e agendamento público na plataforma; seleção explícita de público infantil.
+- TikTok: envio autorizado por vídeo à caixa de entrada; finalizar a publicação no aplicativo TikTok.
+- Lote de um vídeo ou sete dias, sem geração indefinida ou cobranças ilimitadas.
+
+**Configuração obrigatória:** chave com saldo/permissão na OpenAI, credenciais OAuth próprias e
+contas autorizadas. A criação de chave via conector foi recusada no ambiente de desenvolvimento;
+nenhuma chave está no repositório. Nenhum upload real ou chamada paga foi feito durante os testes.
+
+[Configuração e limites](docs/pilot-setup.md) · [Validação da implementação](docs/pilot-validation.md)
+
+## Estado do editor de cortes
 
 O ClipForge já processa arquivos locais de verdade com FFmpeg/FFprobe, cria cortes de 1, 5 ou 10 minutos, adapta o formato por plataforma, salva tudo no HDD escolhido e gera um pacote de publicação para cada corte.
 
@@ -141,7 +161,7 @@ pnpm.cmd dist:win
 O instalador é gerado em:
 
 ```text
-apps\desktop\release\ClipForge-AI-Setup-0.4.0.exe
+apps\desktop\release\ClipForge-AI-Setup-0.6.0.exe
 ```
 
 ## Validação

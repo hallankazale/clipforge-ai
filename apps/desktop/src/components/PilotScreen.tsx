@@ -1,3 +1,4 @@
+import { PilotProductionPanel } from './PilotProductionPanel';
 import { useEffect, useMemo, useState } from 'react';
 import {
   BadgeCheck,
@@ -9,7 +10,6 @@ import {
   Save,
   ShieldCheck,
   Sparkles,
-  Youtube,
 } from 'lucide-react';
 import { AppSidebar } from './AppSidebar';
 import { nichePresets } from '../pilot/presets';
@@ -45,7 +45,11 @@ function loadSettings(): PilotSettings {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (!raw) return defaultSettings;
-    return { ...defaultSettings, ...JSON.parse(raw) } as PilotSettings;
+    const candidate = { ...defaultSettings, ...JSON.parse(raw) };
+    if (!Array.isArray(candidate.platforms) || candidate.platforms.some((p: unknown) => p !== 'TikTok' && p !== 'YouTube Shorts') ||
+      ![30, 45, 60].includes(candidate.durationSeconds) || ![1, 2, 3].includes(candidate.videosPerDay) || ![1, 2, 3].includes(candidate.maxRetries) ||
+      !Number.isFinite(candidate.minimumQualityScore) || candidate.minimumQualityScore < 75 || candidate.minimumQualityScore > 95 || typeof candidate.autoRetry !== 'boolean') return defaultSettings;
+    return candidate as PilotSettings;
   } catch {
     return defaultSettings;
   }
@@ -92,29 +96,7 @@ export function PilotScreen({ onNavigateHome }: PilotScreenProps) {
           <div className="pilot-orb"><Sparkles size={34} /></div>
         </section>
 
-        <section className="panel account-panel">
-          <div className="pilot-heading">
-            <div>
-              <span className="eyebrow">CONTAS CONECTADAS</span>
-              <h2>Canais de publicação</h2>
-            </div>
-            <span className="development-badge">OAuth em desenvolvimento</span>
-          </div>
-
-          <div className="account-grid">
-            <article className="account-card">
-              <Youtube size={28} />
-              <div><strong>YouTube</strong><span>Não conectado</span></div>
-              <button disabled>Conectar</button>
-            </article>
-            <article className="account-card">
-              <div className="tiktok-mark">♪</div>
-              <div><strong>TikTok</strong><span>Não conectado</span></div>
-              <button disabled>Conectar</button>
-            </article>
-          </div>
-          <p className="pilot-note">As senhas nunca serão armazenadas pelo ClipForge. A conexão será feita pela autorização oficial de cada plataforma.</p>
-        </section>
+        <PilotProductionPanel settings={settings} />
 
         <section className="panel pilot-config-panel">
           <div className="pilot-heading">
@@ -217,7 +199,7 @@ export function PilotScreen({ onNavigateHome }: PilotScreenProps) {
                 checked={settings.autoRetry}
                 onChange={(event) => setSettings((current) => ({ ...current, autoRetry: event.target.checked }))}
               />
-              <div><strong>Refazer automaticamente</strong><span>Corrige somente o componente que derrubou a nota.</span></div>
+              <div><strong>Refazer automaticamente</strong><span>Refaz os componentes afetados; mudanças no roteiro também refazem voz e cenas.</span></div>
             </label>
 
             <label className="pilot-field retry-field">
@@ -236,7 +218,7 @@ export function PilotScreen({ onNavigateHome }: PilotScreenProps) {
 
           <div className="quality-metrics-grid">
             {['Hook', 'Roteiro', 'Consistência visual', 'Ritmo', 'Voz', 'Legendas', 'Originalidade', 'Formato'].map((metric) => (
-              <div key={metric}><Gauge size={16} /><span>{metric}</span><strong>avaliado</strong></div>
+              <div key={metric}><Gauge size={16} /><span>{metric}</span><strong>por vídeo</strong></div>
             ))}
           </div>
         </section>
@@ -294,9 +276,9 @@ export function PilotScreen({ onNavigateHome }: PilotScreenProps) {
         {saved && <p className="saved-message"><CheckCircle2 size={15} /> Plano salvo neste computador.</p>}
 
         <div className="pilot-status-list">
-          <div><RefreshCw size={16} /><span>Gerador de conteúdo</span><strong>próxima fase</strong></div>
-          <div><CalendarClock size={16} /><span>Fila automática</span><strong>próxima fase</strong></div>
-          <div><ShieldCheck size={16} /><span>Quality Gate</span><strong>base pronta</strong></div>
+          <div><RefreshCw size={16} /><span>Gerador de conteúdo</span><strong>integrado</strong></div>
+          <div><CalendarClock size={16} /><span>Fila automática</span><strong>integrado</strong></div>
+          <div><ShieldCheck size={16} /><span>Quality Gate</span><strong>verificação real</strong></div>
         </div>
       </aside>
     </div>
