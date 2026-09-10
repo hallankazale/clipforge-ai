@@ -12,9 +12,15 @@ contextBridge.exposeInMainWorld('clipforge', {
   platform: process.platform,
   selectOutputDirectory: (): Promise<string | null> =>
     ipcRenderer.invoke('storage:choose-output-directory'),
+  openDirectory: (targetPath: string) =>
+    ipcRenderer.invoke('storage:open-directory', targetPath),
   selectVideoFile: () => ipcRenderer.invoke('video:select-and-probe'),
-  startAnalysis: (input: { filePath: string; outputPath: string }) =>
-    ipcRenderer.invoke('analysis:start', input),
+  startAnalysis: (input: {
+    filePath: string;
+    outputPath: string;
+    cutDurationMinutes: 1 | 5 | 10;
+    platforms: Array<'Instagram' | 'TikTok' | 'Reels' | 'YouTube'>;
+  }) => ipcRenderer.invoke('analysis:start', input),
   cancelAnalysis: (jobId: string) => ipcRenderer.invoke('analysis:cancel', jobId),
   onAnalysisProgress: (callback: (payload: unknown) => void) =>
     subscribe('analysis:progress', callback),
