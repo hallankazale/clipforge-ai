@@ -1,11 +1,14 @@
 {
   "name": "@clipforge/desktop",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "private": true,
+  "description": "ClipForge AI - cortes inteligentes de vídeo para Windows",
+  "author": "Hallan Kazale",
   "main": "dist-electron/main.js",
   "scripts": {
     "dev": "tsc -p tsconfig.electron.json && concurrently -k \"vite\" \"tsc -p tsconfig.electron.json --watch --preserveWatchOutput\" \"wait-on tcp:5173 && electron .\"",
     "build": "vite build && tsc -p tsconfig.electron.json",
+    "dist:win": "pnpm build && electron-builder --win nsis --x64",
     "typecheck": "tsc --noEmit -p tsconfig.json && tsc --noEmit -p tsconfig.electron.json"
   },
   "dependencies": {
@@ -23,7 +26,42 @@
     "@types/react": "^18.3.18",
     "@types/react-dom": "^18.3.5",
     "concurrently": "^9.1.0",
+    "electron-builder": "^26.0.12",
     "typescript": "^5.7.2",
     "wait-on": "^8.0.1"
+  },
+  "build": {
+    "appId": "com.hallankazale.clipforgeai",
+    "productName": "ClipForge AI",
+    "asar": true,
+    "asarUnpack": [
+      "node_modules/ffmpeg-static/**/*",
+      "node_modules/ffprobe-static/**/*"
+    ],
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "dist/**/*",
+      "dist-electron/**/*",
+      "package.json"
+    ],
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": ["x64"]
+        }
+      ],
+      "artifactName": "ClipForge-AI-Setup-${version}.${ext}"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "ClipForge AI",
+      "deleteAppDataOnUninstall": false
+    }
   }
 }
