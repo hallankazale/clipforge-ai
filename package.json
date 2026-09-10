@@ -9,6 +9,7 @@
   "scripts": {
     "dev": "pnpm --filter @clipforge/desktop dev",
     "build": "pnpm --filter @clipforge/desktop build",
+    "dist:win": "pnpm --filter @clipforge/desktop dist:win",
     "test": "vitest run",
     "test:watch": "vitest",
     "typecheck": "pnpm -r typecheck"
