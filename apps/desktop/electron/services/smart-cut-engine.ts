@@ -3,6 +3,10 @@ import { readdir, stat, mkdir } from 'node:fs/promises';
 import path from 'node:path';
 import { promisify } from 'node:util';
 import ffmpegPath from 'ffmpeg-static';
+import {
+  createPublicationPackage,
+  type PublicationPackage,
+} from './publishing-metadata';
 
 const execFileAsync = promisify(execFile);
 
@@ -21,6 +25,7 @@ export interface RenderedCut extends SmartCutCandidate {
   rank: number;
   platform: CutPlatform;
   filePath: string;
+  publication: PublicationPackage;
 }
 
 export interface SmartCutResult {
@@ -87,9 +92,7 @@ async function detectSilences(
   sourceDurationSeconds: number,
   signal: AbortSignal,
 ): Promise<SilenceInterval[]> {
-  if (!ffmpegPath) {
-    throw new Error('O binário do FFmpeg não foi encontrado nesta instalação.');
-  }
+  if (!ffmpegPath) throw new Error('O binário do FFmpeg não foi encontrado nesta instalação.');
 
   try {
     const { stderr } = await execFileAsync(
@@ -106,11 +109,7 @@ async function detectSilences(
         'null',
         '-',
       ],
-      {
-        windowsHide: true,
-        maxBuffer: 24 * 1024 * 1024,
-        signal,
-      },
+      { windowsHide: true, maxBuffer: 24 * 1024 * 1024, signal },
     );
 
     const intervals: SilenceInterval[] = [];
@@ -148,8 +147,6 @@ async function detectSilences(
     if (signal.aborted || (error instanceof Error && error.name === 'AbortError')) {
       throw new Error('ANALYSIS_CANCELED');
     }
-
-    // O ranking ainda pode funcionar só com atividade visual caso a análise de silêncio falhe.
     return [];
   }
 }
@@ -199,8 +196,12 @@ function calculateAudioActivity(
 ): number {
   const endSeconds = startSeconds + durationSeconds;
   const silentSeconds = silences.reduce(
-    (total, silence) =>
-      total + overlapSeconds(startSeconds, endSeconds, silence.startSeconds, silence.endSeconds),
+    (total, silence) => total + overlapSeconds(
+      startSeconds,
+      endSeconds,
+      silence.startSeconds,
+      silence.endSeconds,
+    ),
     0,
   );
 
@@ -232,23 +233,11 @@ export function buildSmartCutPlan(input: {
   silences: SilenceInterval[];
   visualSamples: VisualSample[];
 }): SmartCutCandidate[] {
-  const targetSeconds = Math.min(
-    input.sourceDurationSeconds,
-    input.requestedDurationMinutes * 60,
-  );
-
+  const targetSeconds = Math.min(input.sourceDurationSeconds, input.requestedDurationMinutes * 60);
   if (targetSeconds <= 0) return [];
 
-  const maxCuts = input.requestedDurationMinutes === 1
-    ? 6
-    : input.requestedDurationMinutes === 5
-      ? 4
-      : 3;
-
-  const desiredCount = Math.max(
-    1,
-    Math.min(maxCuts, Math.floor(input.sourceDurationSeconds / targetSeconds)),
-  );
+  const maxCuts = input.requestedDurationMinutes === 1 ? 6 : input.requestedDurationMinutes === 5 ? 4 : 3;
+  const desiredCount = Math.max(1, Math.min(maxCuts, Math.floor(input.sourceDurationSeconds / targetSeconds)));
 
   if (input.sourceDurationSeconds <= targetSeconds + 1) {
     return [{
@@ -273,22 +262,12 @@ export function buildSmartCutPlan(input: {
     const audioActivity = input.hasAudio
       ? calculateAudioActivity(startSeconds, targetSeconds, input.silences)
       : 0;
-    const visualActivity = calculateVisualActivity(
-      startSeconds,
-      targetSeconds,
-      input.visualSamples,
-    );
+    const visualActivity = calculateVisualActivity(startSeconds, targetSeconds, input.visualSamples);
     const score = input.hasAudio
       ? audioActivity * 0.72 + visualActivity * 0.28
       : visualActivity;
 
-    return {
-      startSeconds,
-      durationSeconds: targetSeconds,
-      audioActivity,
-      visualActivity,
-      score,
-    };
+    return { startSeconds, durationSeconds: targetSeconds, audioActivity, visualActivity, score };
   });
 
   const sorted = candidates.sort((a, b) => b.score - a.score);
@@ -313,16 +292,61 @@ export function buildSmartCutPlan(input: {
   return selected.length > 0 ? selected : [sorted[0]];
 }
 
-function platformFilter(platform: CutPlatform): string {
-  if (platform === 'YouTube') {
-    return 'scale=1920:1080:force_original_aspect_ratio=decrease,pad=1920:1080:(ow-iw)/2:(oh-ih)/2,setsar=1';
-  }
-
-  return 'scale=1080:1920:force_original_aspect_ratio=decrease,pad=1080:1920:(ow-iw)/2:(oh-ih)/2,setsar=1';
+function isVerticalSocial(platform: CutPlatform): boolean {
+  return platform === 'TikTok' || platform === 'Reels' || platform === 'Instagram';
 }
 
 function platformFolder(platform: CutPlatform): string {
   return platform.toLowerCase();
+}
+
+function buildRenderArgs(
+  input: SmartCutInput,
+  candidate: SmartCutCandidate,
+  platform: CutPlatform,
+  destination: string,
+): string[] {
+  const args = [
+    '-hide_banner', '-loglevel', 'error', '-y',
+    '-ss', candidate.startSeconds.toFixed(3),
+    '-i', input.filePath,
+    '-t', candidate.durationSeconds.toFixed(3),
+  ];
+
+  if (isVerticalSocial(platform)) {
+    // Fundo desfocado ocupa 9:16 e o vídeo original permanece inteiro no centro.
+    args.push(
+      '-filter_complex',
+      '[0:v]split=2[bg][fg];' +
+      '[bg]scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920,gblur=sigma=22[bg2];' +
+      '[fg]scale=1080:1920:force_original_aspect_ratio=decrease[fg2];' +
+      '[bg2][fg2]overlay=(W-w)/2:(H-h)/2,setsar=1[v]',
+      '-map', '[v]',
+    );
+  } else {
+    args.push(
+      '-map', '0:v:0',
+      '-vf', 'scale=1920:1080:force_original_aspect_ratio=decrease,pad=1920:1080:(ow-iw)/2:(oh-ih)/2,setsar=1',
+    );
+  }
+
+  if (input.hasAudio) {
+    args.push('-map', '0:a:0?', '-af', 'loudnorm=I=-14:LRA=11:TP=-1.5');
+  }
+
+  args.push(
+    '-c:v', 'libx264',
+    '-preset', 'veryfast',
+    '-crf', '22',
+    '-pix_fmt', 'yuv420p',
+  );
+
+  if (input.hasAudio) {
+    args.push('-c:a', 'aac', '-b:a', '160k');
+  }
+
+  args.push('-movflags', '+faststart', '-sn', '-dn', destination);
+  return args;
 }
 
 async function renderCut(
@@ -332,54 +356,14 @@ async function renderCut(
   platform: CutPlatform,
   destination: string,
 ): Promise<void> {
-  if (!ffmpegPath) {
-    throw new Error('O binário do FFmpeg não foi encontrado nesta instalação.');
-  }
+  if (!ffmpegPath) throw new Error('O binário do FFmpeg não foi encontrado nesta instalação.');
 
   try {
-    await execFileAsync(
-      ffmpegPath,
-      [
-        '-hide_banner',
-        '-loglevel',
-        'error',
-        '-y',
-        '-ss',
-        candidate.startSeconds.toFixed(3),
-        '-i',
-        input.filePath,
-        '-t',
-        candidate.durationSeconds.toFixed(3),
-        '-map',
-        '0:v:0',
-        '-map',
-        '0:a:0?',
-        '-vf',
-        platformFilter(platform),
-        '-c:v',
-        'libx264',
-        '-preset',
-        'veryfast',
-        '-crf',
-        '22',
-        '-pix_fmt',
-        'yuv420p',
-        '-c:a',
-        'aac',
-        '-b:a',
-        '160k',
-        '-movflags',
-        '+faststart',
-        '-sn',
-        '-dn',
-        destination,
-      ],
-      {
-        windowsHide: true,
-        maxBuffer: 8 * 1024 * 1024,
-        signal: input.signal,
-      },
-    );
+    await execFileAsync(ffmpegPath, buildRenderArgs(input, candidate, platform, destination), {
+      windowsHide: true,
+      maxBuffer: 8 * 1024 * 1024,
+      signal: input.signal,
+    });
   } catch (error) {
     if (input.signal.aborted || (error instanceof Error && error.name === 'AbortError')) {
       throw new Error('ANALYSIS_CANCELED');
@@ -391,11 +375,7 @@ async function renderCut(
 }
 
 export async function createSmartCuts(input: SmartCutInput): Promise<SmartCutResult> {
-  input.onProgress({
-    phase: 'scoring',
-    percent: 0,
-    message: 'Medindo atividade de áudio e vídeo...',
-  });
+  input.onProgress({ phase: 'scoring', percent: 0, message: 'Medindo atividade de áudio e vídeo...' });
 
   const [silences, visualSamples] = await Promise.all([
     input.hasAudio
@@ -424,12 +404,7 @@ export async function createSmartCuts(input: SmartCutInput): Promise<SmartCutRes
   });
 
   const sourceBaseName = sanitizeFolderName(path.basename(input.filePath, path.extname(input.filePath)));
-  const cutsDirectory = path.join(
-    input.outputPath,
-    'Cortes',
-    sourceBaseName,
-    input.jobId,
-  );
+  const cutsDirectory = path.join(input.outputPath, 'Cortes', sourceBaseName, input.jobId);
   await mkdir(cutsDirectory, { recursive: true });
 
   const normalizedPlatforms = [...new Set(input.platforms)].filter((platform): platform is CutPlatform =>
@@ -457,6 +432,13 @@ export async function createSmartCuts(input: SmartCutInput): Promise<SmartCutRes
       });
 
       await renderCut(input, candidate, rank, platform, filePath);
+      const publication = await createPublicationPackage({
+        candidate,
+        rank,
+        platform,
+        videoFilePath: filePath,
+      });
+
       completedRenders += 1;
       renderedCuts.push({
         ...candidate,
@@ -464,20 +446,17 @@ export async function createSmartCuts(input: SmartCutInput): Promise<SmartCutRes
         rank,
         platform,
         filePath,
+        publication,
       });
 
       input.onProgress({
         phase: 'cutting',
         percent: Math.round((completedRenders / totalRenders) * 100),
         message: `Corte ${rank} para ${platform} concluído.`,
-        detail: filePath,
+        detail: `${filePath} · viral ${publication.viralScore}/100`,
       });
     }
   }
 
-  return {
-    cutsDirectory,
-    candidates,
-    renderedCuts,
-  };
+  return { cutsDirectory, candidates, renderedCuts };
 }
