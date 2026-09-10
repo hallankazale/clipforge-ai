@@ -1,6 +1,7 @@
 import {
   CheckCircle2,
   Clock3,
+  Copy,
   ExternalLink,
   FileAudio,
   FileImage,
@@ -37,11 +38,7 @@ const stageOrder: AnalysisStage[] = [
   'completed',
 ];
 
-const steps: Array<{
-  stage: AnalysisStage;
-  title: string;
-  detail: string;
-}> = [
+const steps: Array<{ stage: AnalysisStage; title: string; detail: string }> = [
   { stage: 'preparing', title: 'Preparando', detail: 'Validação do vídeo' },
   { stage: 'audio', title: 'Áudio', detail: 'Atividade e silêncio' },
   { stage: 'frames', title: 'Imagem', detail: 'Variação visual' },
@@ -68,12 +65,9 @@ function formatClock(timestamp: string): string {
 }
 
 function stepState(step: AnalysisStage, current: AnalysisStage | undefined) {
-  if (!current) return 'pending';
-  if (current === 'canceled') return 'pending';
-
+  if (!current || current === 'canceled') return 'pending';
   const currentIndex = stageOrder.indexOf(current);
   const stepIndex = stageOrder.indexOf(step);
-
   if (current === 'completed' || stepIndex < currentIndex) return 'done';
   if (stepIndex === currentIndex) return 'active';
   return 'pending';
@@ -96,6 +90,15 @@ export function ProcessingScreen({
   async function openCutsFolder(): Promise<void> {
     if (!result?.cutsDirectory || !window.clipforge) return;
     await window.clipforge.openDirectory(result.cutsDirectory);
+  }
+
+  async function copyPublication(cut: RenderedCut): Promise<void> {
+    const text = [
+      cut.publication.title,
+      '',
+      cut.publication.description,
+    ].join('\n');
+    await navigator.clipboard.writeText(text);
   }
 
   return (
@@ -160,8 +163,8 @@ export function ProcessingScreen({
           <section className="panel cuts-result-panel">
             <div className="cuts-result-header">
               <div>
-                <span className="eyebrow"><Trophy size={15} /> CORTES GERADOS</span>
-                <h2>{result.cuts.length} arquivo(s) MP4 pronto(s)</h2>
+                <span className="eyebrow"><Trophy size={15} /> PACOTES PRONTOS PARA PUBLICAR</span>
+                <h2>{result.cuts.length} vídeo(s) com análise de publicação</h2>
                 <p>{result.cutDurationMinutes} min por corte · {result.platforms.join(', ')}</p>
               </div>
               <button className="open-folder-action" onClick={openCutsFolder}>
@@ -171,17 +174,26 @@ export function ProcessingScreen({
 
             <div className="cuts-list">
               {result.cuts.map((cut) => (
-                <article className="cut-card" key={cut.id}>
+                <article className="cut-card publication-card" key={cut.id}>
                   <div className="cut-rank"><Film size={18} />#{cut.rank}</div>
                   <div className="cut-main">
-                    <strong>{cut.platform}</strong>
-                    <span>{formatDuration(cut.startSeconds)} → {formatDuration(cut.startSeconds + cut.durationSeconds)}</span>
+                    <div className="publication-title-row">
+                      <strong>{cut.publication.title}</strong>
+                      <span className={`viral-badge viral-${cut.publication.viralLabel.toLowerCase().replace(' ', '-')}`}>
+                        {cut.publication.viralScore}/100 · {cut.publication.viralLabel}
+                      </span>
+                    </div>
+                    <span>{cut.platform} · {formatDuration(cut.startSeconds)} → {formatDuration(cut.startSeconds + cut.durationSeconds)}</span>
+                    <p className="publication-description">{cut.publication.description}</p>
+                    <div className="hashtags-row">
+                      {cut.publication.hashtags.map((hashtag) => <span key={hashtag}>{hashtag}</span>)}
+                    </div>
                     <small title={cut.filePath}>{cut.filePath}</small>
+                    <small className="captions-note">Legendas automáticas: aguardando módulo local de transcrição.</small>
                   </div>
-                  <div className="cut-score">
-                    <span>Ranking local</span>
-                    <strong>{Math.round(cut.score * 100)}%</strong>
-                  </div>
+                  <button className="copy-publication-action" onClick={() => copyPublication(cut)} title="Copiar título, descrição e hashtags">
+                    <Copy size={16} />Copiar publicação
+                  </button>
                 </article>
               ))}
             </div>
@@ -217,26 +229,10 @@ export function ProcessingScreen({
             <p>Os arquivos pesados ficam no destino escolhido, evitando usar o SSD como armazenamento principal.</p>
 
             <div className="artifact-list">
-              <div>
-                <FileAudio size={20} />
-                <span>Áudio de análise</span>
-                <strong>{result?.audioPath ? 'Pronto' : progress?.stage === 'audio' ? 'Gerando...' : 'Aguardando'}</strong>
-              </div>
-              <div>
-                <FileImage size={20} />
-                <span>Quadros de análise</span>
-                <strong>{result ? 'Prontos' : progress?.stage === 'frames' ? 'Gerando...' : 'Aguardando'}</strong>
-              </div>
-              <div>
-                <Film size={20} />
-                <span>Vídeos finais</span>
-                <strong>{result ? `${result.cuts.length} MP4` : progress?.stage === 'cutting' ? 'Renderizando...' : 'Aguardando'}</strong>
-              </div>
-              <div>
-                <FolderOpen size={20} />
-                <span>Pasta de trabalho</span>
-                <strong title={workspacePath}>{workspacePath ?? 'Será criada ao iniciar'}</strong>
-              </div>
+              <div><FileAudio size={20} /><span>Áudio de análise</span><strong>{result?.audioPath ? 'Pronto' : progress?.stage === 'audio' ? 'Gerando...' : 'Aguardando'}</strong></div>
+              <div><FileImage size={20} /><span>Quadros de análise</span><strong>{result ? 'Prontos' : progress?.stage === 'frames' ? 'Gerando...' : 'Aguardando'}</strong></div>
+              <div><Film size={20} /><span>Vídeos finais</span><strong>{result ? `${result.cuts.length} MP4` : progress?.stage === 'cutting' ? 'Renderizando...' : 'Aguardando'}</strong></div>
+              <div><FolderOpen size={20} /><span>Pasta de trabalho</span><strong title={workspacePath}>{workspacePath ?? 'Será criada ao iniciar'}</strong></div>
             </div>
           </section>
         </div>
@@ -249,9 +245,7 @@ export function ProcessingScreen({
         </div>
 
         <div className="engine-visual">
-          <div className={isRunning ? 'engine-core running' : 'engine-core'}>
-            <Video size={38} />
-          </div>
+          <div className={isRunning ? 'engine-core running' : 'engine-core'}><Video size={38} /></div>
           <span>{progress?.message ?? 'Pronto para processar'}</span>
         </div>
 
@@ -263,21 +257,15 @@ export function ProcessingScreen({
         </div>
 
         {isRunning ? (
-          <button className="cancel-action" onClick={onCancel}>
-            <Square size={17} fill="currentColor" />Cancelar análise
-          </button>
+          <button className="cancel-action" onClick={onCancel}><Square size={17} fill="currentColor" />Cancelar análise</button>
         ) : result ? (
-          <button className="primary-action" onClick={openCutsFolder}>
-            <FolderOpen size={18} />Abrir vídeos recortados
-          </button>
+          <button className="primary-action" onClick={openCutsFolder}><FolderOpen size={18} />Abrir vídeos recortados</button>
         ) : (
-          <button className="primary-action" onClick={onBack}>
-            <RotateCcw size={18} />Voltar ao início
-          </button>
+          <button className="primary-action" onClick={onBack}><RotateCcw size={18} />Voltar ao início</button>
         )}
 
         <p className="summary-note">
-          O ranking atual funciona totalmente offline e sem chave de API, usando atividade de áudio e variação visual. A transcrição será adicionada depois para entender também o conteúdo falado.
+          Nota viral, título, descrição e hashtags são calculados offline. A próxima camada local de transcrição vai gerar legendas e textos realmente baseados no conteúdo falado.
         </p>
       </aside>
     </div>
