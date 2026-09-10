@@ -1,0 +1,131 @@
+.processing-steps-six {
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+}
+
+.cuts-result-panel {
+  padding: 22px;
+}
+
+.cuts-result-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+}
+
+.cuts-result-header h2 {
+  margin: 8px 0 4px;
+  font-size: 22px;
+}
+
+.cuts-result-header p {
+  margin: 0;
+  color: #8193ae;
+  font-size: 12px;
+}
+
+.open-folder-action {
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 14px;
+  border-radius: 10px;
+  color: #eef6ff;
+  background: rgba(42, 103, 199, .22);
+  border: 1px solid rgba(72, 140, 255, .38);
+  font-weight: 700;
+}
+
+.open-folder-action:hover {
+  background: rgba(47, 114, 221, .32);
+}
+
+.cuts-list {
+  display: grid;
+  gap: 10px;
+  margin-top: 18px;
+  max-height: 340px;
+  overflow: auto;
+  padding-right: 4px;
+}
+
+.cut-card {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  gap: 14px;
+  align-items: center;
+  padding: 13px 14px;
+  border-radius: 12px;
+  background: rgba(9, 21, 38, .72);
+  border: 1px solid rgba(118, 151, 206, .15);
+}
+
+.cut-rank {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 58px;
+  color: #78b2ff;
+  font-weight: 800;
+  font-size: 12px;
+}
+
+.cut-main {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.cut-main strong {
+  font-size: 13px;
+}
+
+.cut-main span,
+.cut-main small {
+  color: #8295b2;
+  font-size: 11px;
+}
+
+.cut-main small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cut-score {
+  min-width: 92px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 3px;
+}
+
+.cut-score span {
+  color: #72849f;
+  font-size: 9px;
+  text-transform: uppercase;
+  letter-spacing: .05em;
+}
+
+.cut-score strong {
+  font-size: 16px;
+  color: #8fc1ff;
+}
+
+@media (max-width: 1240px) {
+  .processing-steps-six {
+    grid-template-columns: repeat(3, 1fr);
+  }
+
+  .processing-step:nth-child(3)::after,
+  .processing-step:nth-child(6)::after {
+    display: none;
+  }
+
+  .cuts-result-header {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+}
