@@ -184,9 +184,14 @@ function App() {
     if (!videoMetadata) {
       setVideoError(
         sourceUrl.trim()
-          ? 'A análise direta por link será ligada na próxima etapa. Por enquanto, selecione um vídeo local.'
+          ? 'A análise direta por link será ligada em uma próxima etapa. Por enquanto, selecione um vídeo local.'
           : 'Selecione um vídeo antes de iniciar a análise.',
       );
+      return;
+    }
+
+    if (selectedPlatforms.length === 0) {
+      setVideoError('Selecione pelo menos uma plataforma de saída.');
       return;
     }
 
@@ -200,6 +205,8 @@ function App() {
     const result = await bridge.startAnalysis({
       filePath: videoMetadata.filePath,
       outputPath,
+      cutDurationMinutes: duration,
+      platforms: selectedPlatforms,
     });
 
     if (!result.ok) {
@@ -244,9 +251,9 @@ function App() {
       <main className="workspace">
         <section className="hero panel">
           <div>
-            <div className="eyebrow"><Sparkles size={15} /> CORTE INTELIGENTE COM IA</div>
+            <div className="eyebrow"><Sparkles size={15} /> CORTE INTELIGENTE LOCAL</div>
             <h1>Clipes melhores, <span>menos trabalho.</span></h1>
-            <p>Envie um vídeo ou cole um link. O ClipForge analisa o conteúdo e prepara os melhores momentos para cada plataforma.</p>
+            <p>Envie um vídeo. O ClipForge mede atividade de áudio e vídeo, escolhe trechos relevantes e gera os MP4 no formato de cada plataforma.</p>
           </div>
           <div className="hero-orb"><Play size={34} fill="currentColor" /></div>
         </section>
@@ -359,7 +366,7 @@ function App() {
               <code>{outputPath}</code>
               <button onClick={chooseOutputDirectory}>Alterar...</button>
             </div>
-            <p className="hint">O ClipForge usará esta unidade também para os arquivos pesados da pré-análise, evitando gravar o pipeline no SSD.</p>
+            <p className="hint">Os vídeos finais serão criados dentro de uma pasta <strong>Cortes</strong> neste destino, preferencialmente no seu HDD.</p>
           </div>
         </section>
       </main>
@@ -380,12 +387,12 @@ function App() {
 
         <button
           className="primary-action"
-          disabled={(!videoMetadata && !sourceUrl.trim()) || isAnalysisRunning}
+          disabled={(!videoMetadata && !sourceUrl.trim()) || isAnalysisRunning || selectedPlatforms.length === 0}
           onClick={startAnalysis}
         >
-          <Play size={18} fill="currentColor" />Iniciar análise
+          <Play size={18} fill="currentColor" />Analisar e gerar cortes
         </button>
-        <p className="summary-note">Agora o botão inicia um pipeline real: validação, extração de áudio e geração de quadros com progresso em tempo real.</p>
+        <p className="summary-note">O processo só termina quando os arquivos MP4 finais estiverem gravados no HD.</p>
       </aside>
     </div>
   );
