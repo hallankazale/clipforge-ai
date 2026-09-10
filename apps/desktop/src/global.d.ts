@@ -20,10 +20,14 @@ declare global {
     | { ok: true; canceled: false; metadata: VideoMetadata }
     | { ok: false; canceled: boolean; error: string | null };
 
+  type CutPlatform = 'Instagram' | 'TikTok' | 'Reels' | 'YouTube';
+
   type AnalysisStage =
     | 'preparing'
     | 'audio'
     | 'frames'
+    | 'scoring'
+    | 'cutting'
     | 'finalizing'
     | 'completed'
     | 'canceled';
@@ -38,6 +42,18 @@ declare global {
     workspacePath: string;
   };
 
+  type RenderedCut = {
+    id: string;
+    rank: number;
+    platform: CutPlatform;
+    filePath: string;
+    startSeconds: number;
+    durationSeconds: number;
+    score: number;
+    audioActivity: number;
+    visualActivity: number;
+  };
+
   type AnalysisResult = {
     jobId: string;
     workspacePath: string;
@@ -45,6 +61,10 @@ declare global {
     framesDirectory: string;
     frameIntervalSeconds: number;
     metadata: VideoMetadata;
+    cutsDirectory: string;
+    cuts: RenderedCut[];
+    cutDurationMinutes: 1 | 5 | 10;
+    platforms: CutPlatform[];
   };
 
   type StartAnalysisResult =
@@ -61,10 +81,13 @@ declare global {
     clipforge?: {
       platform: string;
       selectOutputDirectory: () => Promise<string | null>;
+      openDirectory: (targetPath: string) => Promise<{ ok: boolean; error?: string }>;
       selectVideoFile: () => Promise<SelectVideoResult>;
       startAnalysis: (input: {
         filePath: string;
         outputPath: string;
+        cutDurationMinutes: 1 | 5 | 10;
+        platforms: CutPlatform[];
       }) => Promise<StartAnalysisResult>;
       cancelAnalysis: (jobId: string) => Promise<{ ok: boolean }>;
       onAnalysisProgress: (callback: (payload: AnalysisProgress) => void) => () => void;
