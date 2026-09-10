@@ -1,12 +1,12 @@
 import { spawn } from 'node:child_process';
 import { mkdir, rm } from 'node:fs/promises';
 import path from 'node:path';
-import ffmpegPath from 'ffmpeg-static';
 import {
   createSmartCuts,
   type CutPlatform,
   type RenderedCut,
 } from './smart-cut-engine';
+import { getFfmpegPath } from './static-binaries';
 import { probeVideo, type VideoMetadata } from './video-engine';
 
 export type AnalysisStage =
@@ -121,10 +121,7 @@ async function runFfmpeg(
   args: string[],
   options: FfmpegProgressOptions,
 ): Promise<void> {
-  const binaryPath = ffmpegPath;
-  if (!binaryPath) {
-    throw new Error('O binário do FFmpeg não foi encontrado nesta instalação.');
-  }
+  const binaryPath = getFfmpegPath();
 
   await new Promise<void>((resolve, reject) => {
     const child = spawn(binaryPath, args, {
