@@ -1,14 +1,16 @@
 import { randomUUID } from 'node:crypto';
-import { app, BrowserWindow, dialog, ipcMain } from 'electron';
+import { app, BrowserWindow, dialog, ipcMain, shell } from 'electron';
 import path from 'node:path';
 import {
   runAnalysisPipeline,
   type AnalysisProgress,
 } from './services/analysis-pipeline';
+import type { CutPlatform } from './services/smart-cut-engine';
 import { probeVideo } from './services/video-engine';
 
 const DEV_SERVER_URL = 'http://localhost:5173';
 const activeAnalyses = new Map<string, AbortController>();
+const ALLOWED_PLATFORMS = new Set<CutPlatform>(['Instagram', 'TikTok', 'Reels', 'YouTube']);
 
 function createMainWindow(): void {
   const mainWindow = new BrowserWindow({
@@ -58,6 +60,15 @@ ipcMain.handle('storage:choose-output-directory', async () => {
   return result.filePaths[0];
 });
 
+ipcMain.handle('storage:open-directory', async (_event, targetPath: string) => {
+  if (typeof targetPath !== 'string' || !path.isAbsolute(targetPath)) {
+    return { ok: false, error: 'Caminho inválido.' };
+  }
+
+  const error = await shell.openPath(targetPath);
+  return error ? { ok: false, error } : { ok: true };
+});
+
 ipcMain.handle('video:select-and-probe', async () => {
   const result = await dialog.showOpenDialog({
     title: 'Selecione um vídeo para analisar',
@@ -85,7 +96,15 @@ ipcMain.handle('video:select-and-probe', async () => {
 
 ipcMain.handle(
   'analysis:start',
-  async (event, input: { filePath?: string; outputPath?: string }) => {
+  async (
+    event,
+    input: {
+      filePath?: string;
+      outputPath?: string;
+      cutDurationMinutes?: number;
+      platforms?: string[];
+    },
+  ) => {
     if (activeAnalyses.size > 0) {
       return {
         ok: false,
@@ -95,6 +114,12 @@ ipcMain.handle(
 
     const filePath = input?.filePath;
     const outputPath = input?.outputPath;
+    const cutDurationMinutes = input?.cutDurationMinutes;
+    const platforms = Array.isArray(input?.platforms)
+      ? input.platforms.filter((platform): platform is CutPlatform =>
+          ALLOWED_PLATFORMS.has(platform as CutPlatform),
+        )
+      : [];
 
     if (!filePath || !outputPath) {
       return { ok: false, error: 'Vídeo e pasta de saída são obrigatórios.' };
@@ -102,6 +127,14 @@ ipcMain.handle(
 
     if (!path.isAbsolute(filePath) || !path.isAbsolute(outputPath)) {
       return { ok: false, error: 'Os caminhos do vídeo e da saída precisam ser absolutos.' };
+    }
+
+    if (cutDurationMinutes !== 1 && cutDurationMinutes !== 5 && cutDurationMinutes !== 10) {
+      return { ok: false, error: 'Escolha cortes de 1, 5 ou 10 minutos.' };
+    }
+
+    if (platforms.length === 0) {
+      return { ok: false, error: 'Selecione pelo menos uma plataforma de saída.' };
     }
 
     const jobId = randomUUID();
@@ -116,6 +149,8 @@ ipcMain.handle(
       jobId,
       filePath,
       outputPath,
+      cutDurationMinutes,
+      platforms,
       signal: controller.signal,
       onProgress,
     })
