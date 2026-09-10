@@ -14,6 +14,7 @@ import {
   Video,
 } from 'lucide-react';
 import { AppSidebar, type AppSection } from './components/AppSidebar';
+import { PilotScreen } from './components/PilotScreen';
 import { ProcessingScreen } from './components/ProcessingScreen';
 
 type DurationOption = 1 | 5 | 10;
@@ -226,6 +227,10 @@ function App() {
   function returnHome(): void {
     if (isAnalysisRunning) return;
     setSection('home');
+  }
+
+  if (section === 'pilot') {
+    return <PilotScreen onNavigateHome={() => setSection('home')} />;
   }
 
   if (section === 'processing') {
