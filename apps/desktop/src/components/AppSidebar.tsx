@@ -23,7 +23,7 @@ export function AppSidebar({ active, onNavigate }: AppSidebarProps) {
         <div className="brand-mark">C</div>
         <div>
           <strong>ClipForge AI</strong>
-          <span>v0.5.0</span>
+          <span>v0.6.0</span>
         </div>
       </div>
 

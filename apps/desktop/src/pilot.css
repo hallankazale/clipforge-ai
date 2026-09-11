@@ -454,3 +454,16 @@
     grid-column: 1 / -1;
   }
 }
+
+.production-panel { display: grid; gap: 18px; }
+.production-panel input[type="datetime-local"] { color-scheme: dark; padding: 12px; border-radius: 9px; background: #0c1d30; color: #e9f1fb; border: 1px solid #28425e; }
+.production-panel button:not(.primary-action) { padding: 10px 14px; background: #152b43; color: #ecf5ff; border: 1px solid #315372; border-radius: 9px; cursor: pointer; overflow-wrap: anywhere; }
+.production-panel button:disabled { opacity: .5; cursor: not-allowed; }
+.pilot-job-list { display: grid; gap: 14px; max-height: 650px; overflow-y: auto; }
+.pilot-job { border: 1px solid #28445e; border-radius: 14px; padding: 18px; background: #0b192b; }
+.pilot-job p { color: #b4c7da; font-size: 13px; overflow-wrap: anywhere; }
+.pilot-job details { margin: 14px 0; color: #dce8f4; font-size: 14px; }
+.pilot-job li { margin-bottom: 8px; }
+.pilot-job-actions { display: flex; flex-wrap: wrap; gap: 10px; }
+.pilot-error { padding: 12px; background: #3b202d; color: #ffbccc !important; border-radius: 8px; overflow-wrap: anywhere; }
+@media (max-width: 900px) { .production-panel .pilot-form-grid, .production-panel .account-grid { grid-template-columns: 1fr; } }

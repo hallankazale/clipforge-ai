@@ -1,3 +1,4 @@
+import type { PilotAPI } from '../electron/pilot/contracts';
 export {};
 
 declare global {
@@ -93,6 +94,7 @@ declare global {
   interface Window {
     clipforge?: {
       platform: string;
+      pilot: PilotAPI;
       selectOutputDirectory: () => Promise<string | null>;
       openDirectory: (targetPath: string) => Promise<{ ok: boolean; error?: string }>;
       selectVideoFile: () => Promise<SelectVideoResult>;
