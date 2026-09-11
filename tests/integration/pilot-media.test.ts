@@ -4,11 +4,11 @@ import { existsSync } from 'node:fs';
 import path from 'node:path';
 import { tmpdir } from 'node:os';
 // Media smoke test uses the real installed FFmpeg. No paid AI calls or social uploads.
-vi.mock('../../apps/desktop/electron/services/static-binaries', () => ({ getFfmpegPath: () => '/usr/bin/ffmpeg', getFfprobePath: () => '/usr/bin/ffprobe' }));
+vi.mock('../../apps/desktop/electron/services/static-binaries', async (importOriginal) => process.platform === 'win32' ? await importOriginal() : ({ getFfmpegPath: () => '/usr/bin/ffmpeg', getFfprobePath: () => '/usr/bin/ffprobe' }));
 import { compose, ffmpeg, inspectVideo } from '../../apps/desktop/electron/pilot/media';
 let directory = '';
 afterAll(async () => { if (directory) await rm(directory, { recursive: true, force: true }); });
-describe.skipIf(!existsSync('/usr/bin/ffmpeg'))('renderização real do piloto', () => {
+describe.skipIf(process.platform !== 'win32' && !existsSync('/usr/bin/ffmpeg'))('renderização real do piloto', () => {
   it('produz MP4 H264 vertical, AAC e legendas; reprova silêncio e tela preta', async () => {
     directory = await mkdtemp(path.join(tmpdir(), 'clipforge-media-'));
     const signal = new AbortController().signal;

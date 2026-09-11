@@ -60,7 +60,7 @@ Cobertura nova:
 - Hash alterado bloqueia publicação; sessão salva antes de bytes; retomada usa offset remoto.
 - Sessão expirada não cria upload novo; privado por restrição não é sucesso de agenda pública.
 - Smoke de FFmpeg real em Linux: renderização MP4, codecs, legendas e detecção de silêncio/tela preta.
-  Em Windows, esse teste específico é pulado até configurar binários de fixture portáveis.
+  No Windows usa os binários empacotados de ffmpeg-static/ffprobe-static.
 
 Testes de transporte e geração usam doubles controlados; não comprovam credenciais reais,
 saldo, qualidade dos modelos na conta do usuário, consentimento externo ou aceitação de uploads.
@@ -99,3 +99,6 @@ A ferramenta agent-browser falhou ao iniciar; a alternativa Playwright não enco
 Chromium e o download expirou. Portanto, a interface não recebeu homologação visual
 nesta sessão. OAuth real, API paga, postagem real e instalador Windows também não
 foram validados e devem permanecer como critérios de liberação.
+
+O CI Desktop do PR passou no Windows. O workflow do instalador também passou a executar
+no PR para gerar um artefato de teste sem exigir merge antecipado.
