@@ -6,6 +6,7 @@ import './video-metadata.css';
 import './processing.css';
 import './cuts-result.css';
 import './pilot.css';
+import './pilot-production.css';
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
