@@ -1,0 +1,17 @@
+.queue-card { padding: 18px; display: grid; gap: 14px; }
+.queue-list { display: grid; gap: 8px; }
+.queue-row { display: grid; grid-template-columns: 34px minmax(0, 1fr) auto; align-items: center; gap: 10px; min-height: 58px; padding: 10px; border-radius: 14px; background: rgba(148,163,184,.035); border: 1px solid rgba(148,163,184,.08); }
+.queue-row.detailed { min-height: 70px; }
+.status-icon { width: 34px; height: 34px; display: grid; place-items: center; border-radius: 11px; color: #9fb5c7; background: rgba(148,163,184,.07); }
+.status-ready-to-publish, .status-published { color: #9bf2b8; background: rgba(34,197,94,.09); }
+.status-processing { color: #8be1ff; background: rgba(14,165,233,.09); }
+.status-manual-review { color: #fde68a; background: rgba(245,158,11,.09); }
+.status-failed { color: #fda4af; background: rgba(244,63,94,.09); }
+.queue-copy { min-width: 0; display: grid; gap: 2px; }
+.queue-copy strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 12px; }
+.queue-copy span, .queue-copy small { color: #7f95a8; font-size: 9px; }
+.queue-side { display: grid; justify-items: end; gap: 5px; }
+.queue-side b, .quality-score { color: #73ddff; font-size: 13px; }
+.queue-side button { border: 0; background: transparent; color: #fb9aaa; font-size: 9px; }
+.empty-mini { display: grid; justify-items: center; gap: 8px; padding: 28px 10px; color: #6f879a; }
+.empty-mini p { font-size: 11px; }
