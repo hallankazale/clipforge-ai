@@ -30,8 +30,8 @@ app.whenReady().then(() => {
       return { ok: true };
     },
     normalizeSettings: normalizePilotSettings,
-    isBusy: async () => (await listPilotQueue()).some((item) => item.status === 'processing'),
-  } as Parameters<typeof startCompanionServer>[0]).catch((error) => {
+    isBusy: () => false,
+  }).catch((error) => {
     console.error('Falha ao iniciar Android Companion:', error);
   });
 });
