@@ -28,4 +28,14 @@ contextBridge.exposeInMainWorld('clipforge', {
     subscribe('analysis:complete', callback),
   onAnalysisError: (callback: (payload: unknown) => void) =>
     subscribe('analysis:error', callback),
+  getPilotSecretStatus: () => ipcRenderer.invoke('pilot:secret-status'),
+  savePilotOpenAiKey: (apiKey: string) => ipcRenderer.invoke('pilot:save-openai-key', apiKey),
+  removePilotOpenAiKey: () => ipcRenderer.invoke('pilot:remove-openai-key'),
+  listPilotQueue: () => ipcRenderer.invoke('pilot:queue-list'),
+  schedulePilotWeek: (settings: unknown) => ipcRenderer.invoke('pilot:schedule-week', settings),
+  generatePilotNow: (settings: unknown) => ipcRenderer.invoke('pilot:generate-now', settings),
+  cancelPilot: (queueItemId: string) => ipcRenderer.invoke('pilot:cancel', queueItemId),
+  onPilotProgress: (callback: (payload: unknown) => void) => subscribe('pilot:progress', callback),
+  onPilotComplete: (callback: (payload: unknown) => void) => subscribe('pilot:complete', callback),
+  onPilotError: (callback: (payload: unknown) => void) => subscribe('pilot:error', callback),
 });

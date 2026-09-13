@@ -23,28 +23,19 @@ export function AppSidebar({ active, onNavigate }: AppSidebarProps) {
         <div className="brand-mark">C</div>
         <div>
           <strong>ClipForge AI</strong>
-          <span>v0.5.0</span>
+          <span>v0.6.0</span>
         </div>
       </div>
 
       <nav className="nav-list" aria-label="Navegação principal">
-        <button
-          className={`nav-item ${active === 'home' ? 'active' : ''}`}
-          onClick={() => onNavigate('home')}
-        >
+        <button className={`nav-item ${active === 'home' ? 'active' : ''}`} onClick={() => onNavigate('home')}>
           <Home size={19} />Início
         </button>
-        <button
-          className={`nav-item ${active === 'pilot' ? 'active' : ''}`}
-          onClick={() => onNavigate('pilot')}
-        >
+        <button className={`nav-item ${active === 'pilot' ? 'active' : ''}`} onClick={() => onNavigate('pilot')}>
           <Bot size={19} />Piloto IA
         </button>
         <button className="nav-item"><FolderOpen size={19} />Projetos</button>
-        <button
-          className={`nav-item ${active === 'processing' ? 'active' : ''}`}
-          onClick={() => onNavigate('processing')}
-        >
+        <button className={`nav-item ${active === 'processing' ? 'active' : ''}`} onClick={() => onNavigate('processing')}>
           <Clock3 size={19} />Processamento
         </button>
         <button className="nav-item"><Scissors size={19} />Cortes</button>
