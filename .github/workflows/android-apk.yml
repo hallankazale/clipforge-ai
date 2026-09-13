@@ -1,0 +1,75 @@
+name: Android APK
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'apps/mobile/**'
+      - 'apps/desktop/electron/services/companion-*.ts'
+      - 'apps/desktop/electron/core/pilot-settings.ts'
+      - 'apps/desktop/package.json'
+      - 'pnpm-workspace.yaml'
+      - 'package.json'
+      - '.github/workflows/android-apk.yml'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'apps/mobile/**'
+      - 'apps/desktop/electron/services/companion-*.ts'
+      - 'apps/desktop/electron/core/pilot-settings.ts'
+      - 'apps/desktop/package.json'
+      - 'pnpm-workspace.yaml'
+      - 'package.json'
+      - '.github/workflows/android-apk.yml'
+  workflow_dispatch:
+
+jobs:
+  build-android:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9.15.4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      - name: Install dependencies
+        run: pnpm install --no-frozen-lockfile
+
+      - name: Typecheck workspace
+        run: pnpm typecheck
+
+      - name: Build mobile web app
+        run: pnpm --filter @clipforge/mobile build
+
+      - name: Generate Android project
+        run: pnpm --filter @clipforge/mobile exec cap add android
+
+      - name: Sync Capacitor
+        run: pnpm --filter @clipforge/mobile exec cap sync android
+
+      - name: Build debug APK
+        working-directory: apps/mobile/android
+        run: chmod +x gradlew && ./gradlew assembleDebug
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: ClipForge-AI-Android-APK
+          path: apps/mobile/android/app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: error
+          retention-days: 30
