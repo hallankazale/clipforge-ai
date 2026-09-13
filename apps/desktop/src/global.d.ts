@@ -22,16 +22,7 @@ declare global {
 
   type CutPlatform = 'Instagram' | 'TikTok' | 'Reels' | 'YouTube';
   type ViralLabel = 'Baixo' | 'Médio' | 'Alto' | 'Muito alto';
-
-  type AnalysisStage =
-    | 'preparing'
-    | 'audio'
-    | 'frames'
-    | 'scoring'
-    | 'cutting'
-    | 'finalizing'
-    | 'completed'
-    | 'canceled';
+  type AnalysisStage = 'preparing' | 'audio' | 'frames' | 'scoring' | 'cutting' | 'finalizing' | 'completed' | 'canceled';
 
   type AnalysisProgress = {
     jobId: string;
@@ -80,14 +71,62 @@ declare global {
     platforms: CutPlatform[];
   };
 
-  type StartAnalysisResult =
-    | { ok: true; jobId: string }
-    | { ok: false; error: string };
+  type StartAnalysisResult = { ok: true; jobId: string } | { ok: false; error: string };
+  type AnalysisError = { jobId: string; canceled: boolean; error: string };
 
-  type AnalysisError = {
-    jobId: string;
-    canceled: boolean;
-    error: string;
+  type PilotPlatform = 'YouTube Shorts' | 'TikTok';
+  type PilotQueueStatus = 'queued' | 'processing' | 'ready-to-publish' | 'manual-review' | 'failed' | 'canceled' | 'published';
+  type PilotProductionStage = 'preparing' | 'script' | 'visuals' | 'voice' | 'editing' | 'quality' | 'retrying' | 'ready' | 'manual-review' | 'failed' | 'canceled';
+
+  type PilotProductionSettingsPayload = {
+    niche: {
+      id: string;
+      label: string;
+      audience: string;
+      tone: string;
+      visualStyle: string;
+      contentPillars: string[];
+    };
+    platforms: PilotPlatform[];
+    durationSeconds: 30 | 45 | 60;
+    videosPerDay: 1 | 2 | 3;
+    minimumQualityScore: number;
+    autoRetry: boolean;
+    maxRetries: 1 | 2 | 3;
+  };
+
+  type PilotQueueItem = {
+    id: string;
+    createdAt: string;
+    updatedAt: string;
+    scheduledFor: string;
+    status: PilotQueueStatus;
+    settings: PilotProductionSettingsPayload;
+    title?: string;
+    outputPath?: string;
+    workspacePath?: string;
+    qualityScore?: number;
+    attempt?: number;
+    error?: string;
+  };
+
+  type PilotProgress = {
+    queueItemId: string;
+    stage: PilotProductionStage;
+    percent: number;
+    message: string;
+    detail?: string;
+    timestamp: string;
+  };
+
+  type PilotResult = {
+    queueItemId: string;
+    status: 'ready-to-publish' | 'manual-review';
+    outputPath: string;
+    workspacePath: string;
+    qualityScore: number;
+    attempt: number;
+    title: string;
   };
 
   interface Window {
@@ -106,6 +145,16 @@ declare global {
       onAnalysisProgress: (callback: (payload: AnalysisProgress) => void) => () => void;
       onAnalysisComplete: (callback: (payload: AnalysisResult) => void) => () => void;
       onAnalysisError: (callback: (payload: AnalysisError) => void) => () => void;
+      getPilotSecretStatus: () => Promise<{ encryptionAvailable: boolean; openaiConfigured: boolean }>;
+      savePilotOpenAiKey: (apiKey: string) => Promise<{ ok: boolean; error?: string }>;
+      removePilotOpenAiKey: () => Promise<{ ok: boolean }>;
+      listPilotQueue: () => Promise<PilotQueueItem[]>;
+      schedulePilotWeek: (settings: PilotProductionSettingsPayload) => Promise<{ ok: boolean; items?: PilotQueueItem[]; error?: string }>;
+      generatePilotNow: (settings: PilotProductionSettingsPayload) => Promise<{ ok: boolean; item?: PilotQueueItem; error?: string }>;
+      cancelPilot: (queueItemId: string) => Promise<{ ok: boolean }>;
+      onPilotProgress: (callback: (payload: PilotProgress) => void) => () => void;
+      onPilotComplete: (callback: (payload: PilotResult) => void) => () => void;
+      onPilotError: (callback: (payload: { queueItemId: string; canceled: boolean; error: string }) => void) => () => void;
     };
   }
 }
