@@ -1,10 +1,10 @@
 {
   "name": "@clipforge/desktop",
-  "version": "0.6.0",
+  "version": "0.7.0",
   "private": true,
-  "description": "ClipForge AI - cortes inteligentes e piloto automático de vídeo para Windows",
+  "description": "ClipForge AI - cortes inteligentes, piloto automático e companion Android",
   "author": "Hallan Kazale",
-  "main": "dist-electron/main.js",
+  "main": "dist-electron/bootstrap-main.js",
   "scripts": {
     "dev": "tsc -p tsconfig.electron.json && concurrently -k \"vite\" \"tsc -p tsconfig.electron.json --watch --preserveWatchOutput\" \"wait-on tcp:5173 && electron .\"",
     "build": "vite build && tsc -p tsconfig.electron.json",
