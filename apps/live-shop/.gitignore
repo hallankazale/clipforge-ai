@@ -1,0 +1,3 @@
+live_shop.db
+*.db
+__pycache__/
