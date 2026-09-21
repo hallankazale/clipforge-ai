@@ -1,13 +1,13 @@
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import parse_qs
-import html, json, os
+import html, json, os, socket, secrets
 from engine import build_queue, score
 from store import Store
 
 DB=os.environ.get("CLIPFORGE_LIVE_DB","live_shop.db")
-store=Store(DB)
+store=Store(DB)\nTOKEN=os.environ.get("CLIPFORGE_REMOTE_TOKEN") or secrets.token_urlsafe(12)\n\ndef local_ip():\n    try:\n        s=socket.socket(socket.AF_INET,socket.SOCK_DGRAM); s.connect(("8.8.8.8",80)); ip=s.getsockname()[0]; s.close(); return ip\n    except OSError: return "127.0.0.1"
 
-class Handler(BaseHTTPRequestHandler):
+class Handler(BaseHTTPRequestHandler):\n    def _authorized(self):\n        if self.client_address[0] in ("127.0.0.1","::1"): return True\n        return self.headers.get("X-ClipForge-Token")==TOKEN or f"token={TOKEN}" in self.path
     def _send(self,status:int,body:bytes,content_type="text/html; charset=utf-8"):
         self.send_response(status); self.send_header("Content-Type",content_type); self.send_header("X-Content-Type-Options","nosniff"); self.send_header("Cache-Control","no-store"); self.end_headers(); self.wfile.write(body)
     def _redirect(self): self.send_response(303); self.send_header("Location","/"); self.end_headers()
@@ -30,4 +30,4 @@ class Handler(BaseHTTPRequestHandler):
             self._redirect()
         except (ValueError,KeyError): self._send(400,"Dados inválidos".encode(),"text/plain; charset=utf-8")
 
-if __name__=="__main__": ThreadingHTTPServer(("127.0.0.1",8787),Handler).serve_forever()
+if __name__=="__main__":\n    ip=local_ip(); print(f"PC: http://127.0.0.1:8787"); print(f"CELULAR (mesmo Wi-Fi): http://{ip}:8787/?token={TOKEN}"); print("Mantenha este token privado.")\n    ThreadingHTTPServer(("0.0.0.0",8787),Handler).serve_forever()
