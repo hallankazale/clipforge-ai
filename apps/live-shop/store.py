@@ -1,6 +1,5 @@
 import sqlite3
 from pathlib import Path
-from typing import Iterable
 from engine import Creative
 
 SCHEMA="""
@@ -20,6 +19,9 @@ class Store:
     def list_creatives(self) -> list[Creative]:
         with self.connect() as con: rows=con.execute("SELECT id,product,title,impressions,clicks,orders,revenue FROM creatives ORDER BY title").fetchall()
         return [Creative(**dict(r)) for r in rows]
+    def list_media(self) -> dict[str,str]:
+        with self.connect() as con: rows=con.execute("SELECT id,media_path FROM creatives").fetchall()
+        return {r["id"]:r["media_path"] for r in rows}
     def add(self, creative_id:str, product:str, title:str, media_path:str=""):
         clean=(creative_id.strip(),product.strip(),title.strip(),media_path.strip())
         if not all(clean[:3]): raise ValueError("id, produto e título são obrigatórios")
@@ -29,4 +31,8 @@ class Store:
         if any(v<0 for v in vals): raise ValueError("métricas não podem ser negativas")
         with self.connect() as con:
             cur=con.execute("UPDATE creatives SET impressions=impressions+?, clicks=clicks+?, orders=orders+?, revenue=revenue+? WHERE id=?",(*vals,creative_id))
+            if cur.rowcount!=1: raise KeyError(creative_id)
+    def delete(self, creative_id:str):
+        with self.connect() as con:
+            cur=con.execute("DELETE FROM creatives WHERE id=?",(creative_id,))
             if cur.rowcount!=1: raise KeyError(creative_id)
